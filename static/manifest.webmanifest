@@ -1,9 +1,35 @@
 {
-  "name": "India F&O Live Sector Scanner v2",
+  "id": "/",
+  "name": "India F&O Live Scanner",
   "short_name": "F&O Scanner",
-  "start_url": "/",
+  "description": "Live India F&O sector, OI, pre-market, breadth and movers scanner.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#09111f",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#08111f",
   "theme_color": "#0f172a",
-  "icons": []
+  "categories": [
+    "finance",
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }

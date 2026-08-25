@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="F&O Scanner">
 <title>India F&O Intraday Scanner v4</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111827;--panel2:#172033;--border:#263247;--text:#e5e7eb;--muted:#94a3b8;--pos:#22c55e;--neg:#ef4444;--blue:#3b82f6;--amber:#f59e0b}
@@ -25,6 +32,17 @@ svg{width:100%;height:390px;display:block}.gridline{stroke:#253047;stroke-width:
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px}.kpi{background:#0d1626;border:1px solid var(--border);border-radius:9px;padding:9px}
 .actions{display:flex;gap:8px;flex-wrap:wrap;padding:9px}.foot{padding:8px 11px;color:var(--muted);font-size:11px}
 @media(max-width:950px){.controls{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}@media(max-width:550px){.controls{grid-template-columns:1fr}.kpis{grid-template-columns:1fr}}
+
+@media(max-width:700px){
+  .wrap{padding:8px}
+  .tabs{position:sticky;top:0;z-index:20;display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;padding:6px 2px 8px;background:var(--bg);scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button,.btn{flex:0 0 auto;min-height:44px;padding:10px 13px}
+  select,input[type=number],input[type=date],input[type=file]{min-height:44px;font-size:16px}
+  th,td{padding:9px 8px;font-size:12px}
+  .scroll{max-height:68vh;-webkit-overflow-scrolling:touch}
+  canvas{max-width:100%}
+}
 </style>
 
 <!-- OI SPURT SELECTION -->
@@ -327,10 +345,31 @@ This tab is independent from the other stock-selection methods. Nifty 50/100/500
 </section>
 
 <script>
-(async()=>{try{
- if('serviceWorker' in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()));}
- if('caches' in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
-}catch(e){console.warn('cache cleanup',e)}})();
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const b = document.getElementById('installPwa');
+  if (b) b.style.display = 'inline-block';
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  const b = document.getElementById('installPwa');
+  if (b) b.style.display = 'none';
+});
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js', {scope:'/'}).catch(console.warn));
+}
+async function installPwaApp(){
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    document.getElementById('installPwa').style.display='none';
+  } else {
+    alert('On Android Chrome: open the menu and choose Install app. If already installed, open F&O Scanner from your app drawer.');
+  }
+}
 </script></head>
 <body><div class="wrap">
 <div class="version">India F&O Intraday Scanner v26 — Live Top Movers Route Fix</div>
@@ -340,7 +379,7 @@ This tab is independent from the other stock-selection methods. Nifty 50/100/500
 <button id="tabBreadth">Market Breadth</button>
 <button id="tabPre">NSE Pre-Market Selection</button>
 <button id="tabOI">Futures OI</button><button id="tabOISpurt">OI Spurt Selection</button><button id="tabPrevData">Stock Selection Based on Previous Data</button><button id="tabTopMovers">Top Gainers & Losers</button><button id="tabImpact">Previous Days Impact Analysis</button><button id="tabCharts">Live 5-Minute Market Charts</button>
-<button id="refreshAll" class="btn">Refresh now</button><button id="exportSectorExcel" class="btn">Export Sector Excel</button>
+<button id="refreshAll" class="btn">Refresh now</button><button id="installPwa" class="btn" style="display:none" onclick="installPwaApp()">Install App</button><button id="exportSectorExcel" class="btn">Export Sector Excel</button>
 </div>
 <div id="globalStatus" class="status">Loading…</div>
 
