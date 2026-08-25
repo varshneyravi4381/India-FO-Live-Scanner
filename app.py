@@ -5812,10 +5812,10 @@ def favicon():
 def home(): return FileResponse(BASE/"static"/"index.html")
 
 @app.get("/manifest.webmanifest")
-def manifest(): return FileResponse(BASE/"static"/"manifest.webmanifest")
+def manifest(): return FileResponse(BASE/"static"/"manifest.webmanifest", media_type="application/manifest+json")
 
 @app.get("/service-worker.js")
-def sw(): return FileResponse(BASE/"static"/"service-worker.js",media_type="application/javascript")
+def sw(): return FileResponse(BASE/"static"/"service-worker.js", media_type="application/javascript", headers={"Service-Worker-Allowed":"/"})
 
 
 @app.get("/api/yahoo-symbol-status")
