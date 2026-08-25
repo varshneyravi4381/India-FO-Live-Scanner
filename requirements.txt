@@ -1,0 +1,9 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+yfinance>=0.2.54
+pandas>=2.2
+requests>=2.32
+NseKit>=0.0.34
+python-multipart>=0.0.9
+
+openpyxl>=3.1

@@ -1,0 +1,11 @@
+{
+  "permanent_excluded": [
+    "BANKNIFTY",
+    "FINNIFTY",
+    "MIDCPNIFTY",
+    "NIFTY",
+    "NIFTYFPI",
+    "NIFTYNXT50"
+  ],
+  "note": "Confirmed unsupported Yahoo .NS symbols from application CMD log."
+}
