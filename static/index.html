@@ -1,0 +1,2164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
+<meta name="theme-color" content="#0f172a">
+<title>India F&O Intraday Scanner v4</title>
+<style>
+:root{color-scheme:dark;--bg:#08111f;--panel:#111827;--panel2:#172033;--border:#263247;--text:#e5e7eb;--muted:#94a3b8;--pos:#22c55e;--neg:#ef4444;--blue:#3b82f6;--amber:#f59e0b}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:1500px;margin:auto;padding:12px}.version{font-size:12px;color:#60a5fa;font-weight:700;margin-bottom:8px}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.tabs button,.btn{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:9px 12px;cursor:pointer}
+.tabs button.active{background:#182b4c;border-color:var(--blue)}.hidden{display:none}
+.controls{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:9px;margin-bottom:10px}
+label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}select,input,button{font:inherit}
+select,input[type=number],input[type=date],input[type=file]{width:100%;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;min-height:39px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}.card h2{font-size:15px;margin:0;padding:10px 12px;border-bottom:1px solid var(--border)}
+.grid2{display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:12px}
+table{width:100%;border-collapse:collapse}th,td{padding:7px 8px;border-bottom:1px solid rgba(148,163,184,.13);font-size:12px;text-align:right;white-space:nowrap}th{background:var(--panel2);color:var(--muted);position:sticky;top:0;z-index:1}
+th:first-child,td:first-child{text-align:left}.pos{color:var(--pos);font-weight:650}.neg{color:var(--neg);font-weight:650}.muted{color:var(--muted)}.warn{color:var(--amber)}tr.click{cursor:pointer}tr.click:hover{background:rgba(59,130,246,.08)}tr.click td:first-child{color:#60a5fa;text-decoration:underline;text-underline-offset:2px}
+.scroll{overflow:auto;max-height:70vh}.status{font-size:12px;color:var(--muted);margin:4px 0 10px}.badge{display:inline-block;padding:2px 6px;border-radius:10px;background:#1f2937;margin-right:3px}
+svg{width:100%;height:390px;display:block}.gridline{stroke:#253047;stroke-width:1}.axis{stroke:#536178;stroke-width:1}.tick{fill:var(--muted);font-size:10px}
+.line1{fill:none;stroke:#22c55e;stroke-width:2}.line2{fill:none;stroke:#ef4444;stroke-width:2}.line3{fill:none;stroke:#60a5fa;stroke-width:2}.line4{fill:none;stroke:#f59e0b;stroke-width:2}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px}.kpi{background:#0d1626;border:1px solid var(--border);border-radius:9px;padding:9px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;padding:9px}.foot{padding:8px 11px;color:var(--muted);font-size:11px}
+@media(max-width:950px){.controls{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}@media(max-width:550px){.controls{grid-template-columns:1fr}.kpis{grid-template-columns:1fr}}
+</style>
+
+<!-- OI SPURT SELECTION -->
+<section id="viewOISpurt" class="hidden">
+<div class="controls">
+<div><label>Top OI-spurt stocks</label><input id="oisTopN" type="number" min="5" max="100" value="30"></div>
+<div><label>Saved trading sessions</label><input id="oisKeepSessions" type="number" min="1" max="60" value="14"></div>
+<div><label>Auto capture time (IST)</label><input id="oisCaptureTime" type="time" value="09:22"></div>
+<div><label>Pre-Market Top N / Rank</label><input id="oisPreTopN" type="number" min="5" max="100" value="30"></div>
+<div><label>History date</label><select id="oisDate"></select></div>
+<div><label>View</label><select id="oisMode"><option value="live">Live today</option><option value="history">Saved history</option></select></div>
+<div><label>Min Current/Close %</label><input id="oisMinMove" type="number" step="0.1" placeholder="Any"></div>
+<div><label>Max Current/Close %</label><input id="oisMaxMove" type="number" step="0.1" placeholder="Any"></div>
+<div><label>OI direction</label><select id="oisDirection"><option value="all">All</option><option value="positive">OI increasing</option><option value="negative">OI decreasing</option></select></div>
+<div><label>&nbsp;</label><button id="oisSaveSettings" class="btn">Save OI-spurt settings</button></div>
+</div>
+
+<div class="actions">
+<button id="oisRefresh" class="btn">Refresh OI Spurt now</button>
+<button id="oisCapture" class="btn">Capture 09:22 snapshot now</button>
+<button id="oisSaveEod" class="btn">Save EOD now</button><button id="exportOISpurtExcel" class="btn">Export Excel</button>
+</div>
+
+<div class="card">
+<h2>OI Spurt Selection — ranked by % Change in OI</h2>
+<div id="oisStatus" class="foot"></div>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Stock</th><th>Sector</th><th>OI Chg %</th><th>Gap %</th><th>Current / Close %</th></tr></thead>
+<tbody id="oisRows"></tbody>
+</table></div>
+</div>
+
+<div class="grid2">
+<div class="card">
+<h2>Common in ALL THREE</h2>
+<div class="scroll"><table><thead><tr><th>Stock</th><th>Sector</th><th>OI %</th><th>Gap %</th><th>Current %</th></tr></thead><tbody id="commonAll3"></tbody></table></div>
+</div>
+<div class="card">
+<h2>Sectorial + Pre-Market</h2>
+<div class="scroll"><table><thead><tr><th>Stock</th><th>Sector</th><th>OI %</th><th>Gap %</th><th>Current %</th></tr></thead><tbody id="commonSP"></tbody></table></div>
+</div>
+<div class="card">
+<h2>Sectorial + OI Spurt</h2>
+<div class="scroll"><table><thead><tr><th>Stock</th><th>Sector</th><th>OI %</th><th>Gap %</th><th>Current %</th></tr></thead><tbody id="commonSO"></tbody></table></div>
+</div>
+<div class="card">
+<h2>Pre-Market + OI Spurt</h2>
+<div class="scroll"><table><thead><tr><th>Stock</th><th>Sector</th><th>OI %</th><th>Gap %</th><th>Current %</th></tr></thead><tbody id="commonPO"></tbody></table></div>
+</div>
+</div>
+
+
+<div class="card">
+<h2>Saved Pre-Market + OI Common Snapshot</h2>
+<div class="scroll"><table>
+<thead><tr><th>Stock</th><th>Sector</th><th>Pre Rank</th><th>OI Rank</th><th>OI %</th><th>Gap %</th><th>Current/Close %</th></tr></thead>
+<tbody id="oisSavedCommon"></tbody>
+</table></div>
+</div>
+<div class="foot">
+Live OI is polled from NSE OI Spurts. Price Gap/Current % uses the existing Yahoo 1-minute feed, so the app can refresh quickly but cannot provide exchange tick-level zero-lag pricing.
+</div>
+</section>
+
+
+<!-- PREVIOUS DATA STOCK SELECTION -->
+<section id="viewPrevData" class="hidden">
+<div class="controls">
+<div><label>Start saved date</label><select id="prevStartDate"></select></div>
+<div><label>End saved date</label><select id="prevEndDate"></select></div>
+<div><label>OI Top N</label><input id="prevOiTopN" type="number" min="5" max="100" value="30"></div>
+<div><label>Pre-Market Top N / Rank</label><input id="prevPreTopN" type="number" min="5" max="100" value="30"></div>
+<div><label>Minimum common sessions</label><input id="prevMinSessions" type="number" min="1" value="1"></div>
+<div><label>Max |Net Movement| %</label><input id="prevMaxMove" type="number" min="0" step="0.1" placeholder="Any"></div>
+<div><label>&nbsp;</label><button id="prevRun" class="btn">Run Previous-Data Selection</button></div><div><label>&nbsp;</label><button id="exportPrevExcel" class="btn">Export Excel</button></div>
+</div>
+
+<div class="card">
+<h2>Stocks Common in Historical Pre-Market + OI Spurt</h2>
+<div id="prevStatus" class="foot"></div>
+<div class="scroll"><table>
+<thead><tr>
+<th>Stock</th><th>Sector</th><th>Common Days</th><th>OI %</th><th>Gap %</th><th>Latest Close %</th><th>Period Net %</th><th>Pre Rank</th><th>OI Rank</th>
+</tr></thead>
+<tbody id="prevRows"></tbody>
+</table></div>
+</div>
+
+<div class="foot">
+For a single selected date, Period Net % is that day's close/current move from PDC. For a multi-date range, Period Net % is calculated from the first selected session's PDC to the last selected session's saved close when those saved prices are available.
+</div>
+</section>
+
+
+<!-- TOP GAINERS & LOSERS -->
+<section id="viewTopMovers" class="hidden">
+<div class="controls">
+<div><label>Universe</label><select id="tmUniverse">
+<option value="Nifty 50">Nifty 50</option>
+<option value="F&O">F&O Stocks</option>
+<option value="Nifty 100">Nifty 100</option>
+<option value="Nifty 500">Nifty 500</option>
+<option value="Sector">Sector / Industry</option>
+</select></div>
+
+<div><label>Sector / Industry</label><select id="tmSector"><option value="All Sectors">All Sectors</option></select></div>
+<div><label>Stock</label><select id="tmStock"><option value="All Stocks">All Stocks</option></select></div>
+<div><label>Top N each side</label><input id="tmTopN" type="number" min="1" max="50" value="10"></div>
+
+<div><label>Live start time (IST)</label><input id="tmStartTime" type="time" value="09:15"></div>
+<div><label>Live end time (IST)</label><input id="tmEndTime" type="time" value="15:15"></div>
+<div><label>Snapshot Time (IST)</label><input id="tmSnapshotTime" type="time" value="10:00"></div>
+<div><label>Auto refresh seconds</label><input id="tmRefreshSeconds" type="number" min="5" max="120" value="15"></div>
+<div><label>History sessions</label><input id="tmKeepSessions" type="number" min="1" max="60" value="14"></div>
+
+<div><label>Max Gainer %</label><input id="tmMaxGainer" type="number" min="0" step="0.1" value="100"></div>
+<div><label>Max Loser |%|</label><input id="tmMaxLoser" type="number" min="0" step="0.1" value="100"></div>
+
+<div><label>First 5m filter</label><select id="tmPattern5">
+<option value="all">Any / no 5m filter</option>
+<option value="bull_reclaim_pdh">Open &gt; PDC, Low &lt; PDC, Close &gt; PDH</option>
+<option value="bear_reclaim_pdl">Open &lt; PDC, High &gt; PDC, Close &lt; PDL</option>
+<option value="close_above_pdh">Open anywhere, Close &gt; PDH</option>
+<option value="close_below_pdl">Open anywhere, Close &lt; PDL</option>
+<option value="formation">Candle in formation</option>
+</select></div>
+
+<div><label>First 15m filter</label><select id="tmPattern15">
+<option value="all">Any / no 15m filter</option>
+<option value="bull_reclaim_pdh">Open &gt; PDC, Low &lt; PDC, Close &gt; PDH</option>
+<option value="bear_reclaim_pdl">Open &lt; PDC, High &gt; PDC, Close &lt; PDL</option>
+<option value="close_above_pdh">Open anywhere, Close &gt; PDH</option>
+<option value="close_below_pdl">Open anywhere, Close &lt; PDL</option>
+<option value="formation">Candle in formation</option>
+</select></div>
+</div>
+
+<div class="actions">
+<button id="tmFetch" class="btn">Fetch Top Gainers / Losers</button>
+<button id="tmSaveSettings" class="btn">Save Settings</button>
+<button id="tmSaveSnapshot" class="btn">Save Snapshot Now</button>
+<button id="tmSaveEod" class="btn">Save EOD Now</button><button id="exportTopMoversExcel" class="btn">Export Excel</button>
+</div>
+
+<div class="controls">
+<div><label>History date</label><select id="tmHistoryDate"></select></div>
+<div><label>View mode</label><select id="tmMode"><option value="live">Live</option><option value="history">Saved History</option></select></div>
+<div><label>Historical basis</label><select id="tmHistoryBasis"><option value="snapshot">Timed Snapshot</option><option value="eod">EOD</option></select></div>
+</div>
+
+<div id="tmStatus" class="status"></div>
+
+<div class="grid2">
+<div class="card">
+<h2>Top Gainers</h2>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Stock</th><th>Sector</th><th>Gap %</th><th>Current/Close %</th><th>First 5m</th><th>First 15m</th></tr></thead>
+<tbody id="tmGainers"></tbody>
+</table></div>
+</div>
+
+<div class="card">
+<h2>Top Losers</h2>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Stock</th><th>Sector</th><th>Gap %</th><th>Current/Close %</th><th>First 5m</th><th>First 15m</th></tr></thead>
+<tbody id="tmLosers"></tbody>
+</table></div>
+</div>
+</div>
+
+
+<div class="card">
+<h2>09:22 Full-Universe Snapshot</h2>
+<div class="controls">
+<div><label>Capture time (IST)</label><input id="tm0922CaptureTime" type="time" value="09:22"></div>
+<div><label>Top N each side</label><input id="tm0922TopN" type="number" min="1" max="50" value="5"></div>
+<div><label>Live session</label><div id="tm0922LiveDate" class="status" style="min-width:150px;padding:10px 0">Today</div></div>
+<div><label>&nbsp;</label><button id="tm0922RefreshLive" class="btn">Refresh Live Now</button></div>
+<div><label>Live IST time</label><div id="tm0922Clock" class="status" style="min-width:150px;padding:10px 0">--:--:--</div></div>
+<div><label>5m filter</label><select id="tm0922Pattern5">
+<option value="all">Any / no 5m filter</option>
+<option value="bull_reclaim_pdh">Open &gt; PDC, Low &lt; PDC, Close &gt; PDH</option>
+<option value="bear_reclaim_pdl">Open &lt; PDC, High &gt; PDC, Close &lt; PDL</option>
+<option value="close_above_pdh">Open anywhere, Close &gt; PDH</option>
+<option value="close_below_pdl">Open anywhere, Close &lt; PDL</option>
+<option value="formation">Candle in formation</option>
+</select></div>
+<div><label>15m filter</label><select id="tm0922Pattern15">
+<option value="all">Any / no 15m filter</option>
+<option value="bull_reclaim_pdh">Open &gt; PDC, Low &lt; PDC, Close &gt; PDH</option>
+<option value="bear_reclaim_pdl">Open &lt; PDC, High &gt; PDC, Close &lt; PDL</option>
+<option value="close_above_pdh">Open anywhere, Close &gt; PDH</option>
+<option value="close_below_pdl">Open anywhere, Close &lt; PDL</option>
+<option value="formation">Candle in formation</option>
+</select></div>
+<div><label>&nbsp;</label><button id="tm0922SaveSettings" class="btn">Save Capture Settings</button></div>
+<div><label>&nbsp;</label><button id="tm0922Capture" class="btn">Capture Today Now</button></div>
+</div>
+
+<div class="grid2">
+<div class="card">
+<h2 id="tm0922GainersTitle">LIVE Top Gainers — Today</h2>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Stock</th><th>Sector</th><th>Gap %</th><th>Move %</th><th>First 5m</th><th>First 15m</th></tr></thead>
+<tbody id="tm0922Gainers"></tbody>
+</table></div>
+</div>
+
+<div class="card">
+<h2 id="tm0922LosersTitle">LIVE Top Losers — Today</h2>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Stock</th><th>Sector</th><th>Gap %</th><th>Move %</th><th>First 5m</th><th>First 15m</th></tr></thead>
+<tbody id="tm0922Losers"></tbody>
+</table></div>
+</div>
+</div>
+<div id="tm0922Status" class="foot"></div>
+</div>
+
+<div class="card">
+<h2>09:22 / EOD Snapshot History</h2>
+<div class="controls">
+<div><label>History date</label><select id="tmTop5Date"></select></div>
+<div><label>Saved basis</label><select id="tmTop5Basis">
+<option value="0922">09:22 Snapshot</option>
+<option value="eod">EOD</option>
+</select></div>
+<div><label>&nbsp;</label><button id="tmTop5Load" class="btn">Load Top 5</button></div>
+<div><label>&nbsp;</label><button id="tmTop5SaveEod" class="btn">Save EOD Top 5 Now</button></div>
+</div>
+
+<div class="grid2">
+<div class="card">
+<h2>Saved Top 5 Gainers</h2>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Stock</th><th>Sector</th><th>Gap %</th><th>Move %</th></tr></thead>
+<tbody id="tmTop5Gainers"></tbody>
+</table></div>
+</div>
+
+<div class="card">
+<h2>Saved Top 5 Losers</h2>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Stock</th><th>Sector</th><th>Gap %</th><th>Move %</th></tr></thead>
+<tbody id="tmTop5Losers"></tbody>
+</table></div>
+</div>
+</div>
+<div id="tmTop5Status" class="foot"></div>
+</div>
+<div class="foot">
+This tab is independent from the other stock-selection methods. Nifty 50/100/500 constituents come from official Nifty index constituent lists. Live ranking uses the existing Yahoo market feed; first 5m/15m candles are fetched only for the shortlisted movers to keep the tab responsive.
+</div>
+</section>
+
+
+<!-- PREVIOUS DAYS IMPACT ANALYSIS -->
+<section id="viewImpact" class="hidden">
+<div class="controls">
+<div><label>Analysis date</label><select id="impactDate"></select></div>
+<div><label>Pre-Market Top N</label><input id="impactPreN" type="number" min="5" max="100" value="30"></div>
+<div><label>OI Spurt Top N</label><input id="impactOiN" type="number" min="5" max="100" value="30"></div>
+<div><label>Previous sessions</label><input id="impactLookback" type="number" min="1" max="5" value="5"></div>
+<div><label>History sessions</label><input id="impactKeep" type="number" min="1" max="120" value="30"></div>
+<div><label>Min |Analysis Move| %</label><input id="impactMinMove" type="number" min="0" step="0.1" value="0"></div>
+<div><label>Max |Analysis Move| %</label><input id="impactMaxMove" type="number" min="0" step="0.1" value="100"></div>
+</div>
+
+<div class="actions">
+<button id="impactRun" class="btn">Build / Refresh Analysis</button>
+<button id="impactSaveSettings" class="btn">Save Settings</button>
+<button id="impactCsv" class="btn">Download CSV</button>
+<button id="impactXlsx" class="btn">Download Excel</button>
+</div>
+
+<div id="impactStatus" class="status"></div>
+
+<div class="card">
+<h2>Previous Days Presence → Analysis Day → Next Day</h2>
+<div class="scroll"><table>
+<thead id="impactHead"></thead>
+<tbody id="impactRows"></tbody>
+</table></div>
+</div>
+</section>
+
+
+<section id="viewCharts" class="hidden">
+<div class="controls">
+<div><label>Nifty / Sector chart</label><select id="chartSeries"></select></div>
+<div><label>Saved chart date</label><select id="chartDate"></select></div>
+<div><label>&nbsp;</label><button id="chartToday" class="btn">Today / Live</button></div>
+<div><label>&nbsp;</label><button id="chartRefresh" class="btn">Refresh Chart</button></div>
+</div>
+<div id="chartStatus" class="status"></div>
+<div class="card"><h2 id="marketChartTitle">Current Day — 5-Minute Price</h2>
+<div style="position:relative"><canvas id="marketChartCanvas" width="1200" height="600" style="width:100%;height:600px;background:#0b1220;border-radius:8px"></canvas><div id="marketChartTooltip" style="display:none;position:absolute;pointer-events:none;background:#111827;color:#fff;border:1px solid #475569;padding:7px 9px;border-radius:6px;font-size:12px;z-index:5"></div></div>
+</div>
+<div class="foot">Price chart uses the actual Yahoo index ticker when available. If a sector index ticker is unavailable, the app uses a clearly labelled equal-weight basket price. Thin horizontal levels: PDH/PDL/PDC, 1D–4D Ago High/Low, PWH/PWL/PWC/PWO and Current Week Open. Both live charts and breadth charts are saved by trading date.</div>
+</section>
+
+<script>
+(async()=>{try{
+ if('serviceWorker' in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()));}
+ if('caches' in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
+}catch(e){console.warn('cache cleanup',e)}})();
+</script></head>
+<body><div class="wrap">
+<div class="version">India F&O Intraday Scanner v26 — Live Top Movers Route Fix</div>
+
+<div class="tabs">
+<button id="tabSector" class="active">Sectorial Stock Selection</button>
+<button id="tabBreadth">Market Breadth</button>
+<button id="tabPre">NSE Pre-Market Selection</button>
+<button id="tabOI">Futures OI</button><button id="tabOISpurt">OI Spurt Selection</button><button id="tabPrevData">Stock Selection Based on Previous Data</button><button id="tabTopMovers">Top Gainers & Losers</button><button id="tabImpact">Previous Days Impact Analysis</button><button id="tabCharts">Live 5-Minute Market Charts</button>
+<button id="refreshAll" class="btn">Refresh now</button><button id="exportSectorExcel" class="btn">Export Sector Excel</button>
+</div>
+<div id="globalStatus" class="status">Loading…</div>
+
+<!-- SECTORIAL -->
+<section id="viewSector">
+<div class="controls">
+<div><label>Quick sector</label><select id="sector"></select></div>
+<div><label>Stock sort</label><select id="stockSort">
+<option value="move_desc">Current % high → low</option><option value="move_asc">Current % low → high</option>
+<option value="gap_desc">Gap % high → low</option><option value="gap_asc">Gap % low → high</option><option value="symbol">Symbol A → Z</option>
+</select></div>
+<div><label>Price level filter</label><select id="levelFilter">
+<option value="all">All stocks</option><option value="above_pdh">Trading above PDH</option><option value="below_pdh">Trading below PDH</option>
+<option value="above_pdo">Trading above PDO</option><option value="below_pdo">Trading below PDO</option>
+<option value="above_pdc">Trading above PDC</option><option value="below_pdc">Trading below PDC</option>
+<option value="above_pdl">Trading above PDL</option><option value="below_pdl">Trading below PDL</option>
+</select></div>
+<div><label>Sector First 5m filter</label><select id="sectorPattern5">
+<option value="all">Any / no 5m filter</option>
+<option value="bull_reclaim_pdh">Open &gt; PDC, Low &lt; PDC, Close &gt; PDH</option>
+<option value="bear_reclaim_pdl">Open &lt; PDC, High &gt; PDC, Close &lt; PDL</option>
+<option value="close_above_pdh">Open anywhere, Close &gt; PDH</option>
+<option value="close_below_pdl">Open anywhere, Close &lt; PDL</option>
+<option value="formation">Candle in formation</option>
+</select></div>
+<div><label>Sector First 15m filter</label><select id="sectorPattern15">
+<option value="all">Any / no 15m filter</option>
+<option value="bull_reclaim_pdh">Open &gt; PDC, Low &lt; PDC, Close &gt; PDH</option>
+<option value="bear_reclaim_pdl">Open &lt; PDC, High &gt; PDC, Close &lt; PDL</option>
+<option value="close_above_pdh">Open anywhere, Close &gt; PDH</option>
+<option value="close_below_pdl">Open anywhere, Close &lt; PDL</option>
+<option value="formation">Candle in formation</option>
+</select></div>
+<div><label>Sector sort</label><select id="sectorSort"><option value="move_desc">Sector % high → low</option><option value="move_asc">Sector % low → high</option><option value="adv_desc">Advances high → low</option><option value="dec_desc">Declines high → low</option></select></div>
+</div>
+<div class="grid2">
+<div class="card"><h2 id="sectorTitle">Selected sector</h2><div class="scroll"><table><thead><tr><th>Stock</th><th>Gap %</th><th>Current / Net %</th><th>OI %</th><th>First 5m</th><th>First 15m</th></tr></thead><tbody id="stockRows"></tbody></table></div></div>
+<div class="card"><h2>All sectors</h2><table><thead><tr><th>Sector</th><th>Move %</th><th>A</th><th>D</th></tr></thead><tbody id="sectorRows"></tbody></table></div>
+</div>
+</section>
+
+<!-- BREADTH -->
+<section id="viewBreadth" class="hidden">
+<div class="actions"><button id="exportBreadthExcel" class="btn">Export Excel</button></div>
+<div class="controls">
+<div><label>Breadth universe</label><select id="breadthUniverse"><option value="fo">All F&O</option><option value="nifty50">Nifty 50</option></select></div>
+<div><label>Saved chart date</label><select id="breadthDate"></select></div>
+<div><label>&nbsp;</label><button id="breadthToday" class="btn">Today / Live</button></div>
+</div>
+<div class="card"><h2>Live Advances / Declines</h2>
+<div class="kpis" id="breadthKpis"></div>
+<div style="position:relative"><canvas id="breadthCanvas" width="1200" height="430" style="width:100%;height:430px;background:#0b1220;border-radius:8px"></canvas><div id="breadthTooltip" style="display:none;position:absolute;pointer-events:none;background:#111827;color:#fff;border:1px solid #475569;padding:7px 9px;border-radius:6px;font-size:12px;z-index:5"></div></div>
+<div class="foot" id="breadthNote"></div></div>
+</section>
+
+<!-- PREMARKET -->
+<section id="viewPre" class="hidden">
+<div class="controls">
+<div><label>Saved date</label><select id="preDate"></select></div>
+<div><label>Sort</label><select id="preSort">
+<option value="combined_rank">Combined Rank</option><option value="value_rank">Value Rank</option><option value="volume_rank">Volume Rank</option>
+<option value="oi_desc">OI % high → low</option><option value="move_desc">Live % high → low</option><option value="gap_desc">Gap % high → low</option>
+</select></div>
+<div><label>First 5-minute filter</label><select id="prePattern5">
+<option value="all">Any / no 5m filter</option>
+<option value="bull_reclaim_pdh">Open &gt; PDC, Low &lt; PDC, Close &gt; PDH</option>
+<option value="bear_reclaim_pdl">Open &lt; PDC, High &gt; PDC, Close &lt; PDL</option>
+<option value="close_above_pdh">Open anywhere, Close &gt; PDH</option>
+<option value="close_below_pdl">Open anywhere, Close &lt; PDL</option>
+<option value="formation">Candle in formation</option>
+</select></div>
+<div><label>First 15-minute filter</label><select id="prePattern15">
+<option value="all">Any / no 15m filter</option>
+<option value="bull_reclaim_pdh">Open &gt; PDC, Low &lt; PDC, Close &gt; PDH</option>
+<option value="bear_reclaim_pdl">Open &lt; PDC, High &gt; PDC, Close &lt; PDL</option>
+<option value="close_above_pdh">Open anywhere, Close &gt; PDH</option>
+<option value="close_below_pdl">Open anywhere, Close &lt; PDL</option>
+<option value="formation">Candle in formation</option>
+</select></div>
+<div><label>Max Combined Rank</label><input id="maxCombined" type="number" min="1" value="30"></div>
+<div><label>Max Value Rank</label><input id="maxValueRank" type="number" min="1" value="30"></div>
+<div><label>Max Volume Rank</label><input id="maxVolumeRank" type="number" min="1" value="30"></div>
+<div><label>Saved trading sessions</label><input id="keepSessions" type="number" min="1" max="60" value="14"></div>
+<div><label>&nbsp;</label><button id="saveRetention" class="btn">Save history setting</button></div>
+<div><label>Min Gap %</label><input id="minGap" type="number" step="0.1" placeholder="Any"></div>
+<div><label>Max Gap %</label><input id="maxGap" type="number" step="0.1" placeholder="Any"></div>
+</div>
+<div class="actions">
+<button id="capturePre" class="btn">Instant capture / process now</button>
+<button id="saveEod" class="btn">Save EOD snapshot</button>
+<button id="downloadPre" class="btn">Download selected date CSV</button><button id="exportPreExcel" class="btn">Export Excel</button>
+</div>
+<div class="card"><h2>Top-30 Value ∩ Top-30 Stock-Futures Volume</h2>
+<div id="preStatus" class="foot"></div>
+<div class="scroll"><table><thead><tr>
+<th>Stock</th><th>Value ₹Cr</th><th>Value Rank</th><th>Fut Vol</th><th>Vol Rank</th><th>Combined</th>
+<th>OI Chg %</th><th>Live %</th><th>Gap %</th><th>First 5m</th><th>First 15m</th>
+</tr></thead><tbody id="preRows"></tbody></table></div></div>
+<div class="card"><h2>Historical CSV Import (exact backfill)</h2>
+<div class="controls" style="padding:10px">
+<div><label>Date</label><input id="importDate" type="date"></div>
+<div><label>Data 1 — Securities in F&O CSV</label><input id="file1" type="file" accept=".csv"></div>
+<div><label>Data 2 — Stock Futures CSV</label><input id="file2" type="file" accept=".csv"></div>
+<div><label>&nbsp;</label><button id="importPre" class="btn">Import & Process</button></div>
+</div><div class="foot">Exact historical pre-open rankings require saved NSE CSVs. The public pre-open API exposes the current session, not a 14-day historical archive.</div></div>
+</section>
+
+<!-- OI -->
+<section id="viewOI" class="hidden"><div class="actions"><button id="exportOIExcel" class="btn">Export Excel</button></div>
+<div class="controls">
+<div><label>OI universe</label><select id="oiSector"><option value="All F&O">All F&O stocks</option></select></div>
+<div><label>OI sort</label><select id="oiSort"><option value="pct_desc">OI % high → low</option><option value="pct_asc">OI % low → high</option><option value="chg_desc">OI change high → low</option><option value="chg_asc">OI change low → high</option><option value="symbol">Symbol A → Z</option></select></div>
+<div><label>Direction</label><select id="oiDirection"><option value="all">All</option><option value="positive">OI increasing</option><option value="negative">OI decreasing</option></select></div>
+<div><label>&nbsp;</label><button id="oiRefresh" class="btn">Refresh OI</button></div>
+</div>
+<div class="card"><h2>Live Stock Futures OI Change</h2><div class="scroll"><table><thead><tr><th>Stock</th><th>Sector</th><th>OI %</th><th>Change OI</th><th>OI</th><th>Expiry</th></tr></thead><tbody id="oiRows"></tbody></table></div><div class="foot" id="oiNote"></div></div>
+</section>
+
+<script>
+const $=id=>document.getElementById(id);
+function isVisible(id){const el=$(id);return !!el && !el.classList.contains('hidden')}
+let currentRows=[],summaryRows=[],oiData=[],preData=null,oiSpurtData=[],oiSpurtTimer=null,topMoversTimer=null,tmLastData=null,timer=null;
+let lazyLoaded={pre:false,oi:false,ois:false,prev:false,tm:false,breadth:false,impact:false};
+let impactData=null,tm0922Data=null,tmTop5Data=null,marketChartData=null,marketChartTimer=null;
+let lastSummaryRefresh=0,lastOiRefresh=0;
+let sectorBrowserCache={},sectorBrowserUpdatedAt=null,lastSectorCacheFetch=0;
+let tmBrowserRows=[],tmUniverseMap={},tmBrowserUpdatedAt=null,tmDetailMap=new Map(),lastTmCacheFetch=0;
+function pct(v){return v==null||Number.isNaN(Number(v))?'NA':`${Number(v)>0?'+':''}${Number(v).toFixed(2)}%`}
+function num(v,d=0){return v==null||Number.isNaN(Number(v))?'NA':Number(v).toLocaleString(undefined,{maximumFractionDigits:d})}
+function cls(v){return v==null?'muted':Number(v)>0?'pos':Number(v)<0?'neg':''}
+function tv(s){return `https://www.tradingview.com/chart/?symbol=NSE%3A${encodeURIComponent(s)}`}
+function show(view,button){['viewSector','viewBreadth','viewPre','viewOI','viewOISpurt','viewPrevData','viewTopMovers','viewImpact','viewCharts'].forEach(x=>$(x).classList.add('hidden'));view.classList.remove('hidden');document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));button.classList.add('active')}
+function levelText(r){return [['PDH',r.above_pdh],['PDO',r.above_pdo],['PDC',r.above_pdc],['PDL',r.above_pdl]].map(([n,a])=>`<span class="${a?'pos':'neg'}">${n}${a?'↑':'↓'}</span>`).join(' ')}
+
+function applySectorFromLocalCache(){
+ const sec=$('sector').value;
+ currentRows=[...(sectorBrowserCache[sec]||[])];
+ renderStocks();
+
+ $('sectorTitle').textContent=sectorBrowserUpdatedAt
+   ?`${sec} • ${new Date(sectorBrowserUpdatedAt).toLocaleTimeString()}`
+   :sec;
+}
+
+async function refreshSectorBrowserCache(force=false){
+ const now=Date.now();
+
+ if(!force && now-lastSectorCacheFetch<1000){
+   return;
+ }
+
+ lastSectorCacheFetch=now;
+
+ const r=await fetch('/api/sector-browser-cache',{cache:'no-store'});
+ if(!r.ok)throw new Error(`Sector browser cache ${r.status}`);
+
+ const d=await r.json();
+ sectorBrowserCache=d.sectors||{};
+ sectorBrowserUpdatedAt=d.updated_at||null;
+
+ applySectorFromLocalCache();
+}
+
+async function loadSector(){
+ applySectorFromLocalCache();
+
+ if(!Object.keys(sectorBrowserCache).length){
+   await refreshSectorBrowserCache(true);
+ }
+}
+
+function sectorCandleText(r,prefix){
+ const status=r[`${prefix}_status`]||'No data';
+ if(status==='Candle in formation')return '<span class="warn">Candle in formation</span>';
+ if(status!=='Complete')return `<span class="muted">${status}</span>`;
+ const flags=[];
+ if(r[`${prefix}_bull_reclaim_pdh`])flags.push('Bull reclaim→PDH');
+ if(r[`${prefix}_bear_reclaim_pdl`])flags.push('Bear reclaim→PDL');
+ if(r[`${prefix}_close_above_pdh`])flags.push('C>PDH');
+ if(r[`${prefix}_close_below_pdl`])flags.push('C<PDL');
+ return flags.join(', ')||'—';
+}
+function sectorCandlePass(r,prefix,pattern){
+ if(pattern==='all')return true;
+ if(pattern==='formation')return r[`${prefix}_status`]==='Candle in formation';
+ return r[`${prefix}_${pattern}`]===true;
+}
+function renderStocks(){
+ const f=$('levelFilter').value;
+ const s=$('stockSort').value;
+ const p5=$('sectorPattern5').value;
+ const p15=$('sectorPattern15').value;
+
+ let rows=currentRows.filter(r=>
+   (f==='all'||r[f]===true) &&
+   sectorCandlePass(r,'first5',p5) &&
+   sectorCandlePass(r,'first15',p15)
+ );
+
+ rows=[...rows].sort((a,b)=>{
+   if(s==='symbol')return a.symbol.localeCompare(b.symbol);
+   const k=s.startsWith('gap')?'gap_pct':'move_pct';
+   const av=a[k]??(s.endsWith('asc')?999:-999);
+   const bv=b[k]??(s.endsWith('asc')?999:-999);
+   return s.endsWith('asc')?av-bv:bv-av;
+ });
+
+ $('stockRows').innerHTML=rows.length?'':'<tr><td colspan="6" class="muted">No stocks match.</td></tr>';
+
+ for(const r of rows){
+   const oi=oiData.find(x=>x.symbol===r.symbol);
+   const op=oi?oi.oi_change_pct:null;
+   const tr=document.createElement('tr');
+   tr.className='click';
+   tr.innerHTML=`
+     <td title="Open ${r.symbol} in TradingView">${r.symbol}</td>
+     <td class="${cls(r.gap_pct)}">${pct(r.gap_pct)}</td>
+     <td class="${cls(r.move_pct)}">${pct(r.move_pct)}</td>
+     <td class="${cls(op)}">${pct(op)}</td>
+     <td>${sectorCandleText(r,'first5')}</td>
+     <td>${sectorCandleText(r,'first15')}</td>`;
+   tr.onclick=()=>window.open(tv(r.symbol),'_blank');
+   $('stockRows').appendChild(tr);
+ }
+}
+async function loadSummary(){const r=await fetch('/api/summary',{cache:'no-store'});summaryRows=(await r.json()).rows||[];renderSummary()}
+function renderSummary(){const m=$('sectorSort').value;let rows=[...summaryRows];rows.sort((a,b)=>m==='move_asc'?(a.avg_move_pct??999)-(b.avg_move_pct??999):m==='adv_desc'?b.advances-a.advances:m==='dec_desc'?b.declines-a.declines:(b.avg_move_pct??-999)-(a.avg_move_pct??-999));$('sectorRows').innerHTML='';for(const r of rows){const tr=document.createElement('tr');tr.innerHTML=`<td>${r.sector}</td><td class="${cls(r.avg_move_pct)}">${pct(r.avg_move_pct)}</td><td class="pos">${r.advances}</td><td class="neg">${r.declines}</td>`;$('sectorRows').appendChild(tr)}}
+
+let breadthHistoryData=null;
+function drawBreadthCanvas(){
+ const canvas=$('breadthCanvas');
+ if(!canvas||!breadthHistoryData)return;
+ const pts=breadthHistoryData.points||[];
+ const universe=$('breadthUniverse').value||'fo';
+ const advKey=universe==='fo'?'fo_advances':'n50_advances';
+ const decKey=universe==='fo'?'fo_declines':'n50_declines';
+ const ctx=canvas.getContext('2d'),rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+ canvas.width=Math.max(900,Math.floor(rect.width*dpr)); canvas.height=Math.floor(430*dpr); ctx.setTransform(dpr,0,0,dpr,0,0);
+ const W=rect.width,H=430,p={l:55,r:20,t:52,b:42}; ctx.clearRect(0,0,W,H);
+ const maxY=Math.max(1,...pts.flatMap(x=>[Number(x[advKey]||0),Number(x[decKey]||0)]));
+ const x=i=>p.l+(pts.length<=1?0:i/(pts.length-1))*(W-p.l-p.r); const y=v=>p.t+(maxY-v)/maxY*(H-p.t-p.b);
+ ctx.strokeStyle='#263348';ctx.lineWidth=1;ctx.fillStyle='#94a3b8';ctx.font='12px sans-serif';
+ for(let i=0;i<=5;i++){const yy=p.t+i*(H-p.t-p.b)/5;ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();ctx.fillText(String(Math.round(maxY*(1-i/5))),8,yy+4)}
+ const draw=(key,color)=>{ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.beginPath();pts.forEach((r,i)=>{const xx=x(i),yy=y(Number(r[key]||0));i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke()};
+ draw(advKey,'#22c55e'); draw(decKey,'#ef4444');
+ const last=pts[pts.length-1];
+ if(last){ctx.font='bold 16px sans-serif';ctx.fillStyle='#22c55e';ctx.fillText(`Advances ${last[advKey]}`,p.l,22);ctx.fillStyle='#ef4444';ctx.fillText(`Declines ${last[decKey]}`,p.l+150,22)}
+ ctx.font='11px sans-serif';ctx.fillStyle='#94a3b8';const step=Math.max(1,Math.ceil(pts.length/8));for(let i=0;i<pts.length;i+=step)ctx.fillText(pts[i].time||'',x(i)-14,H-14);
+ canvas._breadthGeom={pts,advKey,decKey,x,p,W,H};
+}
+function breadthHover(ev){
+ const c=$('breadthCanvas'),tip=$('breadthTooltip'),g=c?c._breadthGeom:null;if(!g||!g.pts.length)return;
+ const r=c.getBoundingClientRect(),mx=ev.clientX-r.left;let best=0,dist=1e9;g.pts.forEach((_,i)=>{const d=Math.abs(g.x(i)-mx);if(d<dist){dist=d;best=i}});const row=g.pts[best];
+ tip.innerHTML=`<b>${row.time}</b><br><span style="color:#22c55e">Advances: ${row[g.advKey]}</span><br><span style="color:#ef4444">Declines: ${row[g.decKey]}</span>`;tip.style.display='block';tip.style.left=`${Math.min(r.width-145,Math.max(5,mx+10))}px`;tip.style.top=`55px`;
+}
+async function loadBreadthDates(){
+ const r=await fetch('/api/combined-breadth-history',{cache:'no-store'}),d=await r.json(),el=$('breadthDate'),old=el.value;el.innerHTML='';for(const dt of d.dates||[]){const o=document.createElement('option');o.value=dt;o.textContent=dt;el.appendChild(o)}if(old&&[...el.options].some(o=>o.value===old))el.value=old;else if(d.date)el.value=d.date;
+}
+async function loadBreadth(){
+ const date=$('breadthDate')?.value||'';
+ const [cr,hr]=await Promise.all([fetch('/api/combined-breadth',{cache:'no-store'}),fetch(`/api/combined-breadth-history${date?'?trade_date='+encodeURIComponent(date):''}`,{cache:'no-store'})]);
+ const c=await cr.json();breadthHistoryData=await hr.json();
+ $('breadthKpis').innerHTML=`<div class="kpi"><b>All F&O</b><br><span class="pos">A ${c.fo.advances}</span> / <span class="neg">D ${c.fo.declines}</span> — Score ${c.fo.breadth_score}</div><div class="kpi"><b>Nifty 50</b><br><span class="pos">A ${c.nifty50.advances}</span> / <span class="neg">D ${c.nifty50.declines}</span> — Score ${c.nifty50.breadth_score}</div>`;
+ drawBreadthCanvas();$('breadthNote').textContent=`Green = Advances, Red = Declines • ${breadthHistoryData.basis||''} • ${c.source||''}`;
+}
+async function loadOI(force=false){const r=await fetch(`/api/oi?sector=All%20F%26O${force?'&force=true':''}`,{cache:'no-store'});const d=await r.json();oiData=d.rows||[];renderOI();renderStocks();$('oiNote').textContent=d.error?d.error:`${d.source} • ${new Date(d.updated_at).toLocaleTimeString()}`}
+function renderOI(){const sec=$('oiSector').value,dir=$('oiDirection').value,sort=$('oiSort').value;let rows=oiData.filter(r=>sec==='All F&O'||r.sector===sec);if(dir==='positive')rows=rows.filter(r=>(r.oi_change_pct??0)>0);if(dir==='negative')rows=rows.filter(r=>(r.oi_change_pct??0)<0);rows.sort((a,b)=>{if(sort==='symbol')return a.symbol.localeCompare(b.symbol);const k=sort.startsWith('chg')?'change_oi':'oi_change_pct';const av=a[k],bv=b[k];if(av==null)return 1;if(bv==null)return-1;return sort.endsWith('asc')?av-bv:bv-av});$('oiRows').innerHTML=rows.length?'':'<tr><td colspan="6">No OI rows.</td></tr>';for(const r of rows){const tr=document.createElement('tr');tr.className='click';tr.innerHTML=`<td title="Open ${r.symbol} in TradingView">${r.symbol}</td><td>${r.sector||''}</td><td class="${cls(r.oi_change_pct)}">${pct(r.oi_change_pct)}</td><td>${num(r.change_oi)}</td><td>${num(r.oi)}</td><td>${r.expiry||''}</td>`;tr.onclick=()=>window.open(tv(r.symbol),'_blank');$('oiRows').appendChild(tr)}}
+
+async function loadPreDates(selectLatest=true){const r=await fetch('/api/premarket/dates',{cache:'no-store'});const d=await r.json();const old=$('preDate').value;$('preDate').innerHTML='';for(const x of d.dates){const o=document.createElement('option');o.value=x.trade_date;o.textContent=`${x.trade_date}${x.eod_saved?' • EOD':''}`;$('preDate').appendChild(o)}if(!selectLatest&&old)$('preDate').value=old;if($('preDate').value)await loadPre()}
+async function loadPre(){const date=$('preDate').value;if(!date)return;const r=await fetch(`/api/premarket/${date}?live=true`,{cache:'no-store'});if(!r.ok){$('preStatus').textContent=(await r.json()).detail||'No snapshot';return}preData=await r.json();$('preStatus').textContent=`Captured ${preData.captured_at} • ${preData.source_note||''}${preData.eod_saved?' • EOD frozen':''} • OI: NSE By Underlying`;renderPre()}
+function candleText(r,prefix){
+ const status=r[`${prefix}_status`]||'No data';
+ if(status==='Candle in formation')return '<span class="warn">Candle in formation</span>';
+ if(status!=='Complete')return `<span class="muted">${status}</span>`;
+ const flags=[];
+ if(r[`${prefix}_bull_reclaim_pdh`])flags.push('Bull reclaim→PDH');
+ if(r[`${prefix}_bear_reclaim_pdl`])flags.push('Bear reclaim→PDL');
+ if(r[`${prefix}_close_above_pdh`])flags.push('C>PDH');
+ if(r[`${prefix}_close_below_pdl`])flags.push('C<PDL');
+ return flags.join(', ')||'—';
+}
+function candleText(r,prefix){
+ const status=r[`${prefix}_status`]||'No data';
+ if(status==='Candle in formation')return '<span class="warn">Candle in formation</span>';
+ if(status!=='Complete')return `<span class="muted">${status}</span>`;
+ const flags=[];
+ if(r[`${prefix}_bull_reclaim_pdh`])flags.push('Bull reclaim→PDH');
+ if(r[`${prefix}_bear_reclaim_pdl`])flags.push('Bear reclaim→PDL');
+ if(r[`${prefix}_close_above_pdh`])flags.push('C>PDH');
+ if(r[`${prefix}_close_below_pdl`])flags.push('C<PDL');
+ return flags.join(', ')||'—';
+}
+function candlePass(r,prefix,pattern){
+ if(pattern==='all') return true;
+ if(pattern==='formation') return r[`${prefix}_status`]==='Candle in formation';
+ return r[`${prefix}_${pattern}`]===true;
+}
+function renderPre(){
+ if(!preData)return;
+
+ let rows=[...(preData.rows||[])];
+
+ const pat5=$('prePattern5').value;
+ const pat15=$('prePattern15').value;
+ const maxC=Number($('maxCombined').value||999);
+ const maxV=Number($('maxValueRank').value||999);
+ const maxVol=Number($('maxVolumeRank').value||999);
+ const minGap=$('minGap').value===''?null:Number($('minGap').value);
+ const maxGap=$('maxGap').value===''?null:Number($('maxGap').value);
+
+ rows=rows.filter(r=>
+   (r.combined_rank??999)<=maxC &&
+   (r.value_rank??999)<=maxV &&
+   (r.volume_rank??999)<=maxVol &&
+   candlePass(r,'first5',pat5) &&
+   candlePass(r,'first15',pat15) &&
+   (minGap==null || r.gap_pct>=minGap) &&
+   (maxGap==null || r.gap_pct<=maxGap)
+ );
+
+ const s=$('preSort').value;
+ rows.sort((a,b)=>
+   s==='value_rank'?(a.value_rank??999)-(b.value_rank??999):
+   s==='volume_rank'?(a.volume_rank??999)-(b.volume_rank??999):
+   s==='oi_desc'?(b.oi_change_pct??-999)-(a.oi_change_pct??-999):
+   s==='move_desc'?(b.live_pct??-999)-(a.live_pct??-999):
+   s==='gap_desc'?(b.gap_pct??-999)-(a.gap_pct??-999):
+   (a.combined_rank??999)-(b.combined_rank??999)
+ );
+
+ $('preRows').innerHTML=rows.length?'':'<tr><td colspan="11" class="muted">No rows match.</td></tr>';
+
+ for(const r of rows){
+   const tr=document.createElement('tr');
+   tr.className='click';
+   tr.innerHTML=`
+     <td title="Open ${r.symbol} in TradingView">${r.symbol}</td>
+     <td>${num(r.value_crore,2)}</td>
+     <td>${r.value_rank??''}</td>
+     <td>${num(r.final_volume)}</td>
+     <td>${r.volume_rank??''}</td>
+     <td>${r.combined_rank??''}</td>
+     <td class="${cls(r.oi_change_pct)}">${pct(r.oi_change_pct)}</td>
+     <td class="${cls(r.live_pct)}">${pct(r.live_pct)}</td>
+     <td class="${cls(r.gap_pct)}">${pct(r.gap_pct)}</td>
+     <td>${candleText(r,'first5')}</td>
+     <td>${candleText(r,'first15')}</td>`;
+   tr.onclick=()=>window.open(tv(r.symbol),'_blank');
+   $('preRows').appendChild(tr);
+ }
+}
+async function loadRetention(){
+ try{
+  const r=await fetch('/api/premarket/settings',{cache:'no-store'});
+  const d=await r.json();
+  $('keepSessions').value=d.keep_sessions??14;
+ }catch(e){}
+}
+async function saveRetention(){
+ const n=Math.max(1,Math.min(60,Number($('keepSessions').value||14)));
+ const r=await fetch(`/api/premarket/settings?keep_sessions=${n}`,{method:'POST'});
+ if(r.ok){
+   const d=await r.json();
+   $('keepSessions').value=d.keep_sessions;
+   await loadPreDates(false);
+   $('preStatus').textContent=`History retention updated to ${d.keep_sessions} trading sessions.`;
+ }
+}
+async function capturePre(){$('preStatus').textContent='Downloading both NSE pre-open datasets and processing common stocks immediately…';const r=await fetch('/api/premarket/capture',{method:'POST'});if(!r.ok){const e=await r.json();$('preStatus').textContent=e.detail||'Capture failed. Use CSV import fallback.';return}await loadPreDates(true)}
+async function saveEod(){const d=$('preDate').value;if(!d)return;await fetch(`/api/premarket/eod/${d}`,{method:'POST'});await loadPreDates(false)}
+async function importPre(){const d=$('importDate').value,f1=$('file1').files[0],f2=$('file2').files[0];if(!d||!f1||!f2){alert('Choose date and both CSV files');return}const fd=new FormData();fd.append('data1',f1);fd.append('data2',f2);const r=await fetch(`/api/premarket/import?trade_date=${encodeURIComponent(d)}`,{method:'POST',body:fd});if(!r.ok){alert((await r.json()).detail||'Import failed');return}await loadPreDates(true)}
+
+async function refresh(){
+ try{
+   const now=Date.now();
+
+   if(isVisible('viewSector')){
+     await refreshSectorBrowserCache(false);
+
+     // Summary and OI do not need an HTTP call every second.
+     if(now-lastSummaryRefresh>=5000){
+       lastSummaryRefresh=now;
+       loadSummary().catch(()=>{});
+     }
+
+     if(now-lastOiRefresh>=5000){
+       lastOiRefresh=now;
+       loadOI(false).then(()=>renderStocks()).catch(()=>{});
+     }
+   }
+
+   if(isVisible('viewBreadth')&&lazyLoaded.breadth){
+     await loadBreadth();
+   }
+
+   if(
+     isVisible('viewPre')
+     && lazyLoaded.pre
+     && $('preDate')
+     && $('preDate').value
+   ){
+     await loadPre();
+   }
+
+   // OI / OI-Spurt / Top Movers have their own refresh buttons/timers.
+   if($('globalStatus')){
+     $('globalStatus').textContent=
+       `Ready • UI 1s • cache-first everywhere • ${new Date().toLocaleTimeString()}`;
+   }
+ }catch(e){
+   if($('globalStatus')){
+     $('globalStatus').textContent=`Refresh error: ${e.message}`;
+   }
+ }
+}
+function oisFilteredRows(){
+ let rows=[...oiSpurtData];
+ const dir=$('oisDirection')?.value||'all';
+ const minMove=$('oisMinMove')?.value===''?null:Number($('oisMinMove').value);
+ const maxMove=$('oisMaxMove')?.value===''?null:Number($('oisMaxMove').value);
+
+ if(dir==='positive') rows=rows.filter(r=>(r.oi_change_pct??0)>0);
+ if(dir==='negative') rows=rows.filter(r=>(r.oi_change_pct??0)<0);
+ if(minMove!==null) rows=rows.filter(r=>r.move_pct!=null && r.move_pct>=minMove);
+ if(maxMove!==null) rows=rows.filter(r=>r.move_pct!=null && r.move_pct<=maxMove);
+
+ return rows;
+}
+
+function renderOISpurt(){
+ const body=$('oisRows');
+ if(!body)return;
+
+ const rows=oisFilteredRows();
+ body.innerHTML=rows.length?'':'<tr><td colspan="6" class="muted">No rows match the selected filter.</td></tr>';
+
+ for(const r of rows){
+   const tr=document.createElement('tr');
+   tr.className='click';
+   tr.innerHTML=`
+     <td>${r.rank??''}</td>
+     <td title="Open ${r.symbol} in TradingView">${r.symbol}</td>
+     <td>${r.sector||'Other / Unmapped'}</td>
+     <td class="${cls(r.oi_change_pct)}">${pct(r.oi_change_pct)}</td>
+     <td class="${cls(r.gap_pct)}">${pct(r.gap_pct)}</td>
+     <td class="${cls(r.move_pct)}">${pct(r.move_pct)}</td>`;
+   tr.onclick=()=>window.open(tv(r.symbol),'_blank');
+   body.appendChild(tr);
+ }
+
+ renderCommonTables();
+}
+
+function commonRow(symbol, oiMap, sectorMap, preMap){
+ const oi=oiMap.get(symbol);
+ const sec=sectorMap.get(symbol);
+ const pre=preMap.get(symbol);
+ const source=oi||sec||pre||{};
+ return {
+   symbol,
+   sector:(oi&&oi.sector)||(sec&&$('sector')?.value)||(pre&&pre.sector)||'Other / Unmapped',
+   oi_change_pct:oi?.oi_change_pct??pre?.oi_change_pct??null,
+   gap_pct:oi?.gap_pct??sec?.gap_pct??pre?.gap_pct??null,
+   move_pct:oi?.move_pct??sec?.move_pct??pre?.live_pct??null
+ };
+}
+
+function fillCommonTable(id, symbols, oiMap, sectorMap, preMap){
+ const body=$(id);
+ if(!body)return;
+ const list=[...symbols].sort();
+ body.innerHTML=list.length?'':'<tr><td colspan="5" class="muted">No common stocks.</td></tr>';
+
+ for(const symbol of list){
+   const r=commonRow(symbol,oiMap,sectorMap,preMap);
+   const tr=document.createElement('tr');
+   tr.className='click';
+   tr.innerHTML=`
+     <td title="Open ${symbol} in TradingView">${symbol}</td>
+     <td>${r.sector}</td>
+     <td class="${cls(r.oi_change_pct)}">${pct(r.oi_change_pct)}</td>
+     <td class="${cls(r.gap_pct)}">${pct(r.gap_pct)}</td>
+     <td class="${cls(r.move_pct)}">${pct(r.move_pct)}</td>`;
+   tr.onclick=()=>window.open(tv(symbol),'_blank');
+   body.appendChild(tr);
+ }
+}
+
+function renderCommonTables(){
+ const oiRows=oisFilteredRows();
+ const sectorRows=currentRows||[];
+ const preRows=(preData&&preData.rows)||[];
+
+ const oiMap=new Map(oiRows.map(r=>[r.symbol,r]));
+ const sectorMap=new Map(sectorRows.map(r=>[r.symbol,r]));
+ const preMap=new Map(preRows.map(r=>[r.symbol,r]));
+
+ const oiSet=new Set(oiMap.keys());
+ const sectorSet=new Set(sectorMap.keys());
+ const preSet=new Set(preMap.keys());
+
+ const all3=new Set([...oiSet].filter(s=>sectorSet.has(s)&&preSet.has(s)));
+ const sp=new Set([...sectorSet].filter(s=>preSet.has(s)));
+ const so=new Set([...sectorSet].filter(s=>oiSet.has(s)));
+ const po=new Set([...preSet].filter(s=>oiSet.has(s)));
+
+ fillCommonTable('commonAll3',all3,oiMap,sectorMap,preMap);
+ fillCommonTable('commonSP',sp,oiMap,sectorMap,preMap);
+ fillCommonTable('commonSO',so,oiMap,sectorMap,preMap);
+ fillCommonTable('commonPO',po,oiMap,sectorMap,preMap);
+}
+
+async function loadOISpurtSettings(){
+ const r=await fetch('/api/oi-spurt/settings',{cache:'no-store'});
+ if(!r.ok)throw new Error(`OI-spurt settings ${r.status}`);
+ const d=await r.json();
+ if($('oisTopN'))$('oisTopN').value=d.top_n??30;
+ if($('oisKeepSessions'))$('oisKeepSessions').value=d.keep_sessions??14;
+}
+
+async function saveOISpurtSettings(){
+ const topN=Math.max(5,Math.min(100,Number($('oisTopN').value||30)));
+ const keep=Math.max(1,Math.min(60,Number($('oisKeepSessions').value||14)));
+ const r=await fetch(`/api/oi-spurt/settings?top_n=${topN}&keep_sessions=${keep}`,{method:'POST'});
+ if(!r.ok)throw new Error(`OI-spurt settings save ${r.status}`);
+ await loadOISpurtDates(false);
+ await loadOISpurt(false);
+}
+
+async function loadOISpurtDates(selectLatest=true){
+ const r=await fetch('/api/oi-spurt/dates',{cache:'no-store'});
+ if(!r.ok)throw new Error(`OI-spurt dates ${r.status}`);
+ const d=await r.json();
+ const el=$('oisDate');
+ if(!el)return;
+
+ const old=el.value;
+ el.innerHTML='';
+
+ for(const x of d.dates||[]){
+   const o=document.createElement('option');
+   o.value=x.trade_date;
+   o.textContent=`${x.trade_date}${x.eod_saved?' • EOD':' • 09:22'}`;
+   el.appendChild(o);
+ }
+
+ if(!selectLatest&&old)el.value=old;
+}
+
+async function loadOISpurt(force=false){
+ const mode=$('oisMode')?.value||'live';
+
+ if(mode==='history'){
+   const date=$('oisDate')?.value;
+   if(!date){
+     oiSpurtData=[];
+     renderOISpurt();
+     if($('oisStatus'))$('oisStatus').textContent='No saved OI-spurt history yet.';
+     return;
+   }
+
+   const r=await fetch(`/api/oi-spurt/history/${encodeURIComponent(date)}`,{cache:'no-store'});
+   if(!r.ok){
+     if($('oisStatus'))$('oisStatus').textContent=`History not found (${r.status})`;
+     return;
+   }
+
+   const d=await r.json();
+   const n=Math.max(5,Math.min(100,Number($('oisTopN')?.value||30)));
+   oiSpurtData=[...(d.rows||[])].sort((a,b)=>(b.oi_change_pct??-999)-(a.oi_change_pct??-999)).slice(0,n);
+   oiSpurtData.forEach((r,i)=>r.rank=i+1);
+   if($('oisStatus'))$('oisStatus').textContent=`${d.trade_date} • ${d.basis}${d.eod_at?' • saved '+new Date(d.eod_at).toLocaleTimeString():''}`;
+   renderOISpurt();
+   return;
+ }
+
+ const n=Math.max(5,Math.min(100,Number($('oisTopN')?.value||30)));
+ const r=await fetch(`/api/oi-spurt/live?top_n=${n}${force?'&force=true':''}`,{cache:'no-store'});
+ if(!r.ok)throw new Error(`OI-spurt live ${r.status}`);
+ const d=await r.json();
+
+ oiSpurtData=d.rows||[];
+ if($('oisStatus')){
+   const t=d.updated_at?new Date(d.updated_at).toLocaleTimeString():'';
+   $('oisStatus').textContent=`${d.source||'NSE OI Spurts'} • updated ${t} • Top ${n} • live refresh 5s`;
+ }
+ renderOISpurt();
+}
+
+async function captureOISpurt0922(){
+ if($('oisStatus'))$('oisStatus').textContent='Capturing OI-spurt 09:22 snapshot…';
+ const r=await fetch('/api/oi-spurt/capture',{method:'POST'});
+ if(!r.ok){
+   const e=await r.json().catch(()=>({}));
+   $('oisStatus').textContent=e.detail||`Capture failed (${r.status})`;
+   return;
+ }
+ await loadOISpurtDates(true);
+ await loadOISpurt(false);
+}
+
+async function saveOISpurtEod(){
+ if($('oisStatus'))$('oisStatus').textContent='Saving current OI-spurt table as EOD…';
+ const r=await fetch('/api/oi-spurt/eod',{method:'POST'});
+ if(!r.ok){
+   const e=await r.json().catch(()=>({}));
+   $('oisStatus').textContent=e.detail||`EOD save failed (${r.status})`;
+   return;
+ }
+ await loadOISpurtDates(true);
+ await loadOISpurt(false);
+}
+
+
+function formatCaptureTime(hourValue, minuteValue){
+ const h=String(hourValue??9).padStart(2,'0');
+ const m=String(minuteValue??22).padStart(2,'0');
+ return `${h}:${m}`;
+}
+
+function parseCaptureTime(value){
+ const parts=(value||'09:22').split(':');
+ return {
+   hour:Number(parts[0]||9),
+   minute:Number(parts[1]||22)
+ };
+}
+
+async function loadOISpurtV13Settings(){
+ const r=await fetch('/api/oi-spurt/v13-settings',{cache:'no-store'});
+ if(!r.ok)throw new Error(`v13 OI settings ${r.status}`);
+ const d=await r.json();
+
+ if($('oisTopN'))$('oisTopN').value=d.top_n??30;
+ if($('oisKeepSessions'))$('oisKeepSessions').value=d.keep_sessions??14;
+ if($('oisPreTopN'))$('oisPreTopN').value=d.preopen_top_n??30;
+ if($('oisCaptureTime'))$('oisCaptureTime').value=formatCaptureTime(d.capture_hour,d.capture_minute);
+}
+
+async function saveOISpurtV13Settings(){
+ const t=parseCaptureTime($('oisCaptureTime').value);
+ const topN=Math.max(5,Math.min(100,Number($('oisTopN').value||30)));
+ const preN=Math.max(5,Math.min(100,Number($('oisPreTopN').value||30)));
+ const keep=Math.max(1,Math.min(60,Number($('oisKeepSessions').value||14)));
+
+ const r=await fetch(
+   `/api/oi-spurt/v13-settings?capture_hour=${t.hour}&capture_minute=${t.minute}&top_n=${topN}&preopen_top_n=${preN}&keep_sessions=${keep}`,
+   {method:'POST'}
+ );
+
+ if(!r.ok)throw new Error(`v13 settings save ${r.status}`);
+
+ await loadOISpurtV13Settings();
+ await loadOISpurtDates(false);
+
+ if($('oisStatus'))$('oisStatus').textContent=`Settings saved • auto capture ${formatCaptureTime(t.hour,t.minute)} IST • OI Top ${topN} • Pre-Market Top ${preN}`;
+}
+
+function renderSavedCommon(rows){
+ const body=$('oisSavedCommon');
+ if(!body)return;
+
+ body.innerHTML=rows.length?'':'<tr><td colspan="7" class="muted">No saved Pre-Market + OI common rows for this date.</td></tr>';
+
+ for(const r of rows){
+   const tr=document.createElement('tr');
+   tr.className='click';
+   tr.innerHTML=`
+     <td title="Open ${r.symbol} in TradingView">${r.symbol}</td>
+     <td>${r.sector||'Other / Unmapped'}</td>
+     <td>${r.combined_rank??''}</td>
+     <td>${r.oi_rank??''}</td>
+     <td class="${cls(r.oi_change_pct)}">${pct(r.oi_change_pct)}</td>
+     <td class="${cls(r.gap_pct)}">${pct(r.gap_pct)}</td>
+     <td class="${cls(r.move_pct)}">${pct(r.move_pct)}</td>`;
+   tr.onclick=()=>window.open(tv(r.symbol),'_blank');
+   body.appendChild(tr);
+ }
+}
+
+async function loadSavedOISpurtCommon(){
+ const date=$('oisDate')?.value;
+ if(!date){
+   renderSavedCommon([]);
+   return;
+ }
+
+ const r=await fetch(`/api/oi-spurt/common-history/${encodeURIComponent(date)}`,{cache:'no-store'});
+ if(!r.ok){
+   renderSavedCommon([]);
+   return;
+ }
+
+ const d=await r.json();
+ renderSavedCommon((d.eod_rows&&d.eod_rows.length)?d.eod_rows:(d.capture_rows||[]));
+}
+
+async function captureOISpurtWithCommon(){
+ if($('oisStatus'))$('oisStatus').textContent='Capturing OI + Pre-Market common snapshot…';
+
+ const r=await fetch('/api/oi-spurt/capture-with-common',{method:'POST'});
+ if(!r.ok){
+   const e=await r.json().catch(()=>({}));
+   $('oisStatus').textContent=e.detail||`Common capture failed (${r.status})`;
+   return;
+ }
+
+ await loadOISpurtDates(true);
+ await loadOISpurt(false);
+ await loadSavedOISpurtCommon();
+}
+
+async function saveOISpurtEodWithCommon(){
+ if($('oisStatus'))$('oisStatus').textContent='Saving EOD OI + common-stock snapshot…';
+
+ const r=await fetch('/api/oi-spurt/eod-with-common',{method:'POST'});
+ if(!r.ok){
+   const e=await r.json().catch(()=>({}));
+   $('oisStatus').textContent=e.detail||`EOD common save failed (${r.status})`;
+   return;
+ }
+
+ await loadOISpurtDates(true);
+ await loadSavedOISpurtCommon();
+}
+
+async function loadPreviousDataDates(){
+ const r=await fetch('/api/oi-spurt/dates',{cache:'no-store'});
+ if(!r.ok)throw new Error(`previous dates ${r.status}`);
+ const d=await r.json();
+
+ const dates=(d.dates||[]).map(x=>x.trade_date).sort();
+
+ for(const id of ['prevStartDate','prevEndDate']){
+   const el=$(id);
+   if(!el)continue;
+   const old=el.value;
+   el.innerHTML='';
+   for(const date of dates){
+     const o=document.createElement('option');
+     o.value=date;
+     o.textContent=date;
+     el.appendChild(o);
+   }
+   if(old&&dates.includes(old))el.value=old;
+ }
+
+ if(dates.length){
+   // Default to the most recent saved date for both controls.
+   if(!$('prevStartDate').value)$('prevStartDate').value=dates[dates.length-1];
+   if(!$('prevEndDate').value)$('prevEndDate').value=dates[dates.length-1];
+ }
+}
+
+function renderPreviousData(rows){
+ const body=$('prevRows');
+ if(!body)return;
+
+ body.innerHTML=rows.length?'':'<tr><td colspan="9" class="muted">No stocks match the previous-data criteria.</td></tr>';
+
+ for(const r of rows){
+   const tr=document.createElement('tr');
+   tr.className='click';
+   tr.innerHTML=`
+     <td title="Open ${r.symbol} in TradingView">${r.symbol}</td>
+     <td>${r.sector||'Other / Unmapped'}</td>
+     <td>${r.common_sessions}</td>
+     <td class="${cls(r.latest_oi_change_pct)}">${pct(r.latest_oi_change_pct)}</td>
+     <td class="${cls(r.latest_gap_pct)}">${pct(r.latest_gap_pct)}</td>
+     <td class="${cls(r.latest_close_move_pct)}">${pct(r.latest_close_move_pct)}</td>
+     <td class="${cls(r.period_net_move_pct)}">${pct(r.period_net_move_pct)}</td>
+     <td>${r.latest_combined_rank??''}</td>
+     <td>${r.latest_oi_rank??''}</td>`;
+   tr.onclick=()=>window.open(tv(r.symbol),'_blank');
+   body.appendChild(tr);
+ }
+}
+
+async function runPreviousDataSelection(){
+ const start=$('prevStartDate').value;
+ const end=$('prevEndDate').value;
+ const oiN=Math.max(5,Math.min(100,Number($('prevOiTopN').value||30)));
+ const preN=Math.max(5,Math.min(100,Number($('prevPreTopN').value||30)));
+ const minSessions=Math.max(1,Number($('prevMinSessions').value||1));
+ const maxMove=$('prevMaxMove').value===''?null:Number($('prevMaxMove').value);
+
+ if(!start||!end){
+   $('prevStatus').textContent='Select a start and end saved date.';
+   return;
+ }
+
+ let url=`/api/previous-data-selection?start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}&oi_top_n=${oiN}&preopen_top_n=${preN}&min_common_sessions=${minSessions}`;
+ if(maxMove!==null)url+=`&max_abs_net_move=${encodeURIComponent(maxMove)}`;
+
+ $('prevStatus').textContent='Analysing saved Pre-Market + OI history…';
+
+ const r=await fetch(url,{cache:'no-store'});
+ if(!r.ok){
+   const e=await r.json().catch(()=>({}));
+   $('prevStatus').textContent=e.detail||`Previous-data selection failed (${r.status})`;
+   return;
+ }
+
+ const d=await r.json();
+ $('prevStatus').textContent=`${d.start_date} → ${d.end_date} • ${d.dates.length} saved session(s) • minimum common ${d.min_common_sessions} • OI Top ${d.oi_top_n} • Pre-Market Top ${d.preopen_top_n}`;
+ renderPreviousData(d.rows||[]);
+}
+
+
+function tmParseTime(value, fallbackH, fallbackM){
+ const p=(value||'').split(':');
+ return {
+   hour:Number(p[0]||fallbackH),
+   minute:Number(p[1]||fallbackM)
+ };
+}
+
+function tmFormatTime(h,m){
+ return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+function tmCandlePass(r,prefix,pattern){
+ if(pattern==='all')return true;
+ if(pattern==='formation')return r[`${prefix}_status`]==='Candle in formation';
+ return r[`${prefix}_${pattern}`]===true;
+}
+
+function tmCandleText(r,prefix){
+ const status=r[`${prefix}_status`]||'No data';
+ if(status==='Candle in formation')return '<span class="warn">Candle in formation</span>';
+ if(status!=='Complete')return `<span class="muted">${status}</span>`;
+ const flags=[];
+ if(r[`${prefix}_bull_reclaim_pdh`])flags.push('Bull reclaim→PDH');
+ if(r[`${prefix}_bear_reclaim_pdl`])flags.push('Bear reclaim→PDL');
+ if(r[`${prefix}_close_above_pdh`])flags.push('C>PDH');
+ if(r[`${prefix}_close_below_pdl`])flags.push('C<PDL');
+ return flags.join(', ')||'—';
+}
+
+async function tmLoadSettings(){
+ const r=await fetch('/api/top-movers/settings',{cache:'no-store'});
+ if(!r.ok)throw new Error(`Top Movers settings ${r.status}`);
+ const d=await r.json();
+
+ $('tmTopN').value=d.top_n??10;
+ $('tmKeepSessions').value=d.keep_sessions??14;
+ $('tmStartTime').value=tmFormatTime(d.start_hour,d.start_minute);
+ $('tmEndTime').value=tmFormatTime(d.end_hour,d.end_minute);
+ $('tmRefreshSeconds').value=d.refresh_seconds??15;
+ $('tmMaxGainer').value=d.max_gainer_pct??100;
+ $('tmMaxLoser').value=d.max_loser_abs_pct??100;
+ $('tmSnapshotTime').value=tmFormatTime(d.snapshot_hour??10,d.snapshot_minute??0);
+}
+
+async function tmSaveSettings(){
+ const st=tmParseTime($('tmStartTime').value,9,15);
+ const en=tmParseTime($('tmEndTime').value,15,15);
+ const snap=tmParseTime($('tmSnapshotTime').value,10,0);
+ const params=new URLSearchParams({
+   top_n:String(Number($('tmTopN').value||10)),
+   keep_sessions:String(Number($('tmKeepSessions').value||14)),
+   start_hour:String(st.hour),
+   start_minute:String(st.minute),
+   end_hour:String(en.hour),
+   end_minute:String(en.minute),
+   refresh_seconds:String(Number($('tmRefreshSeconds').value||15)),
+   max_gainer_pct:String(Number($('tmMaxGainer').value||100)),
+   max_loser_abs_pct:String(Number($('tmMaxLoser').value||100)),
+   snapshot_hour:String(snap.hour),
+   snapshot_minute:String(snap.minute)
+ });
+
+ const r=await fetch(`/api/top-movers/settings?${params.toString()}`,{method:'POST'});
+ if(!r.ok)throw new Error(`Save Top Movers settings ${r.status}`);
+ await tmLoadSettings();
+ await tmLoadDates(false);
+ $('tmStatus').textContent='Top Movers settings saved.';
+}
+
+function tmSectorOf(row){
+ return row?.sector||'Other / Unmapped';
+}
+
+function tmPopulateStockDropdown(){
+ const universe=$('tmUniverse').value;
+ const sectorValue=$('tmSector').value;
+ const allowed=tmUniverseMap[universe]||[];
+ const rowMap=new Map(tmBrowserRows.map(r=>[r.symbol,r]));
+
+ const symbols=allowed.filter(s=>{
+   if(sectorValue==='All Sectors')return true;
+   return tmSectorOf(rowMap.get(s))===sectorValue;
+ });
+
+ const stock=$('tmStock');
+ const old=stock.value;
+
+ stock.innerHTML='<option value="All Stocks">All Stocks</option>';
+
+ for(const s of symbols){
+   const o=document.createElement('option');
+   o.value=s;o.textContent=s;stock.appendChild(o);
+ }
+
+ if([...stock.options].some(o=>o.value===old)){
+   stock.value=old;
+ }
+}
+
+function tmPopulateUniverseControls(){
+ const universe=$('tmUniverse').value;
+ const allowed=tmUniverseMap[universe]||[];
+ const rowMap=new Map(tmBrowserRows.map(r=>[r.symbol,r]));
+
+ const sectors=[...new Set(
+   allowed
+     .map(s=>tmSectorOf(rowMap.get(s)))
+     .filter(Boolean)
+ )].sort();
+
+ const sector=$('tmSector');
+ const old=sector.value;
+
+ sector.innerHTML='<option value="All Sectors">All Sectors</option>';
+
+ for(const s of sectors){
+   const o=document.createElement('option');
+   o.value=s;o.textContent=s;sector.appendChild(o);
+ }
+
+ if([...sector.options].some(o=>o.value===old)){
+   sector.value=old;
+ }
+
+ tmPopulateStockDropdown();
+}
+
+async function tmLoadUniverse(){
+ tmPopulateUniverseControls();
+}
+
+function tmRenderTable(id,rows){
+ const body=$(id);
+ const p5=$('tmPattern5').value;
+ const p15=$('tmPattern15').value;
+ const stockFilter=$('tmStock').value;
+
+ let list=(rows||[]).filter(r=>
+   (stockFilter==='All Stocks'||r.symbol===stockFilter) &&
+   tmCandlePass(r,'first5',p5) &&
+   tmCandlePass(r,'first15',p15)
+ );
+
+ body.innerHTML=list.length?'':'<tr><td colspan="7" class="muted">No stocks match.</td></tr>';
+
+ list.forEach((r,i)=>{
+   const tr=document.createElement('tr');
+   tr.className='click';
+   tr.innerHTML=`
+     <td>${i+1}</td>
+     <td title="Open ${r.symbol} in TradingView">${r.symbol}</td>
+     <td>${r.sector||'Other / Unmapped'}</td>
+     <td class="${cls(r.gap_pct)}">${pct(r.gap_pct)}</td>
+     <td class="${cls(r.move_pct)}">${pct(r.move_pct)}</td>
+     <td>${tmCandleText(r,'first5')}</td>
+     <td>${tmCandleText(r,'first15')}</td>`;
+   tr.onclick=()=>window.open(tv(r.symbol),'_blank');
+   body.appendChild(tr);
+ });
+}
+
+function tmRender(){
+ if(!tmLastData)return;
+ tmRenderTable('tmGainers',tmLastData.gainers||[]);
+ tmRenderTable('tmLosers',tmLastData.losers||[]);
+}
+
+function tmLocalCandidateRows(){
+ const universe=$('tmUniverse').value;
+ const sector=$('tmSector').value;
+ const n=Number($('tmTopN').value||10);
+ const maxG=Number($('tmMaxGainer').value||100);
+ const maxL=Number($('tmMaxLoser').value||100);
+
+ const allowed=new Set(tmUniverseMap[universe]||[]);
+
+ const rows=tmBrowserRows.filter(r=>{
+   if(!allowed.has(r.symbol))return false;
+   if(sector!=='All Sectors' && tmSectorOf(r)!==sector)return false;
+   return r.move_pct!=null;
+ });
+
+ const mergeDetail=r=>({
+   ...r,
+   ...(tmDetailMap.get(r.symbol)||{})
+ });
+
+ const gainers=rows
+   .filter(r=>r.move_pct>0 && r.move_pct<=maxG)
+   .sort((a,b)=>b.move_pct-a.move_pct)
+   .slice(0,n)
+   .map(mergeDetail);
+
+ const losers=rows
+   .filter(r=>r.move_pct<0 && Math.abs(r.move_pct)<=maxL)
+   .sort((a,b)=>a.move_pct-b.move_pct)
+   .slice(0,n)
+   .map(mergeDetail);
+
+ for(const r of [...gainers,...losers]){
+   if(!r.first5_status)r.first5_status='Loading candle…';
+   if(!r.first15_status)r.first15_status='Loading candle…';
+ }
+
+ return {gainers,losers};
+}
+
+function tmRenderLocalInstant(){
+ const local=tmLocalCandidateRows();
+
+ tmLastData={
+   gainers:local.gainers,
+   losers:local.losers,
+   updated_at:tmBrowserUpdatedAt
+ };
+
+ tmRender();
+
+ const universe=$('tmUniverse').value;
+ const sector=$('tmSector').value;
+ const t=tmBrowserUpdatedAt
+   ?new Date(tmBrowserUpdatedAt).toLocaleTimeString()
+   :'cache';
+
+ $('tmStatus').textContent=
+   `${universe}${sector!=='All Sectors'?' • '+sector:''} • instant local cache • ${t}`;
+}
+
+async function tmRefreshBrowserCache(force=false){
+ const now=Date.now();
+
+ if(!force && now-lastTmCacheFetch<3000){
+   return;
+ }
+
+ lastTmCacheFetch=now;
+
+ const r=await fetch('/api/top-movers/browser-cache',{cache:'no-store'});
+ if(!r.ok)throw new Error(`Top Movers browser cache ${r.status}`);
+
+ const d=await r.json();
+ tmBrowserRows=d.rows||[];
+ tmUniverseMap=d.universes||{};
+ tmBrowserUpdatedAt=d.updated_at||null;
+
+ tmPopulateUniverseControls();
+ tmRenderLocalInstant();
+}
+
+async function tmRefreshDetails(){
+ const local=tmLocalCandidateRows();
+ const symbols=[...new Set(
+   [...local.gainers,...local.losers].map(r=>r.symbol)
+ )];
+
+ if(!symbols.length)return;
+
+ const r=await fetch(
+   `/api/top-movers/details?symbols=${encodeURIComponent(symbols.join(','))}`,
+   {cache:'no-store'}
+ );
+
+ if(!r.ok)return;
+
+ const d=await r.json();
+
+ for(const row of d.rows||[]){
+   tmDetailMap.set(row.symbol,row);
+ }
+
+ tmRenderLocalInstant();
+}
+
+async function tmFetch(force=false){
+ if($('tmMode').value==='history'){
+   return tmLoadHistory();
+ }
+
+ tmRenderLocalInstant();
+
+ // Do not wait for network to show the list.
+ tmRefreshBrowserCache(force)
+   .then(()=>tmRefreshDetails())
+   .catch(()=>{});
+}
+
+async function tmLoadDates(selectLatest=true){
+ const r=await fetch('/api/top-movers/dates',{cache:'no-store'});
+ if(!r.ok)throw new Error(`Top Movers dates ${r.status}`);
+ const d=await r.json();
+
+ const el=$('tmHistoryDate');
+ const old=el.value;
+ el.innerHTML='';
+
+ for(const x of d.dates||[]){
+   const o=document.createElement('option');
+   o.value=x.trade_date;
+   const tags=[];
+   if(x.snapshot_saved)tags.push('Snapshot');
+   if(x.eod_saved)tags.push('EOD');
+   o.textContent=`${x.trade_date}${tags.length?' • '+tags.join(' + '):''}`;
+   el.appendChild(o);
+ }
+
+ if(!selectLatest&&old)el.value=old;
+}
+
+async function tmLoadHistory(){
+ const date=$('tmHistoryDate').value;
+ if(!date){
+   $('tmStatus').textContent='No saved Top Movers history yet.';
+   tmLastData={gainers:[],losers:[]};
+   tmRender();
+   return;
+ }
+
+ const universe=$('tmUniverse').value;
+ const sector=$('tmSector').value;
+ const basis=$('tmHistoryBasis').value||'eod';
+ const r=await fetch(`/api/top-movers/history/${encodeURIComponent(date)}?universe=${encodeURIComponent(universe)}&sector=${encodeURIComponent(sector)}&basis=${encodeURIComponent(basis)}`,{cache:'no-store'});
+ if(!r.ok)throw new Error(`Top Movers history ${r.status}`);
+ const d=await r.json();
+
+ const maxG=Number($('tmMaxGainer').value||100);
+ const maxL=Number($('tmMaxLoser').value||100);
+ const n=Number($('tmTopN').value||10);
+
+ let gainers=(d.rows||[]).filter(x=>x.move_pct>0&&x.move_pct<=maxG).sort((a,b)=>b.move_pct-a.move_pct).slice(0,n);
+ let losers=(d.rows||[]).filter(x=>x.move_pct<0&&Math.abs(x.move_pct)<=maxL).sort((a,b)=>a.move_pct-b.move_pct).slice(0,n);
+
+ // Historical EOD rows don't carry intraday candle flags; mark them clearly.
+ [...gainers,...losers].forEach(x=>{
+   if(!x.first5_status)x.first5_status='Historical EOD';
+   if(!x.first15_status)x.first15_status='Historical EOD';
+ });
+
+ tmLastData={gainers,losers};
+ tmRender();
+ $('tmStatus').textContent=`Saved ${d.basis} history • ${date} • ${universe}${sector!=='All Sectors'?' • '+sector:''}`;
+}
+
+
+async function tmSaveSnapshot(){
+ $('tmStatus').textContent='Saving timed Top Movers snapshot…';
+ const r=await fetch('/api/top-movers/snapshot',{method:'POST'});
+ if(!r.ok)throw new Error(`Top Movers snapshot ${r.status}`);
+ await tmLoadDates(true);
+ $('tmStatus').textContent='Timed Top Movers snapshot saved.';
+}
+
+async function tmSaveEod(){
+ $('tmStatus').textContent='Saving full Top Movers EOD snapshot…';
+ const r=await fetch('/api/top-movers/eod',{method:'POST'});
+ if(!r.ok)throw new Error(`Top Movers EOD ${r.status}`);
+ await tmLoadDates(true);
+ $('tmStatus').textContent='Top Movers EOD snapshot saved.';
+}
+
+function tmRestartTimer(){
+ if(topMoversTimer)clearInterval(topMoversTimer);
+
+ topMoversTimer=setInterval(()=>{
+   if(isVisible('viewTopMovers')&&$('tmMode').value==='live'){
+     tmRefreshBrowserCache(false)
+       .then(()=>tmRefreshDetails())
+       .catch(()=>{});
+   }
+ },1000);
+}
+
+
+async function impactLoadSettings(){
+ const r=await fetch('/api/impact/settings',{cache:'no-store'});
+ if(!r.ok)throw new Error(`Impact settings ${r.status}`);
+ const d=await r.json();
+
+ $('impactPreN').value=d.pre_top_n??30;
+ $('impactOiN').value=d.oi_top_n??30;
+ $('impactLookback').value=d.lookback_days??5;
+ $('impactKeep').value=d.keep_sessions??30;
+ $('impactMinMove').value=d.min_abs_move??0;
+ $('impactMaxMove').value=d.max_abs_move??100;
+}
+
+async function impactSaveSettings(){
+ const params=new URLSearchParams({
+   pre_top_n:String(Number($('impactPreN').value||30)),
+   oi_top_n:String(Number($('impactOiN').value||30)),
+   lookback_days:String(Number($('impactLookback').value||5)),
+   keep_sessions:String(Number($('impactKeep').value||30)),
+   min_abs_move:String(Number($('impactMinMove').value||0)),
+   max_abs_move:String(Number($('impactMaxMove').value||100))
+ });
+
+ const r=await fetch(`/api/impact/settings?${params.toString()}`,{method:'POST'});
+ if(!r.ok)throw new Error(`Impact settings save ${r.status}`);
+
+ await impactLoadSettings();
+ $('impactStatus').textContent='Impact-analysis settings saved.';
+}
+
+async function impactLoadDates(){
+ const r=await fetch('/api/impact/dates',{cache:'no-store'});
+ if(!r.ok)throw new Error(`Impact dates ${r.status}`);
+ const d=await r.json();
+
+ const el=$('impactDate');
+ const old=el.value;
+ el.innerHTML='';
+
+ for(const date of d.market_dates||[]){
+   const o=document.createElement('option');
+   o.value=date;
+   o.textContent=date;
+   el.appendChild(o);
+ }
+
+ if(old && [...el.options].some(o=>o.value===old)){
+   el.value=old;
+ }else if(el.options.length){
+   el.value=el.options[el.options.length-1].value;
+ }
+}
+
+function impactRender(){
+ if(!impactData)return;
+
+ const prev=impactData.previous_dates||[];
+
+ const head=$('impactHead');
+ let h='<tr><th>Stock</th><th>Sector</th><th>Analysis Pre</th><th>Analysis OI</th><th>OI %</th><th>Gap %</th><th>Analysis Move %</th>';
+
+ prev.forEach((d,i)=>{
+   h+=`<th>${d} Pre</th><th>${d} OI</th><th>${d} Move %</th>`;
+ });
+
+ h+='<th>Next Date</th><th>Next Day Move %</th><th>Observation</th></tr>';
+ head.innerHTML=h;
+
+ const body=$('impactRows');
+ const rows=impactData.rows||[];
+ body.innerHTML=rows.length?'':'<tr><td colspan="25" class="muted">No rows match the selected analysis filters.</td></tr>';
+
+ for(const r of rows){
+   let cells=`
+     <td title="Open ${r.symbol} in TradingView">${r.symbol}</td>
+     <td>${r.sector||'Other / Unmapped'}</td>
+     <td>${r.in_analysis_preopen?'YES':'—'}</td>
+     <td>${r.in_analysis_oi_spurt?'YES':'—'}</td>
+     <td class="${cls(r.analysis_oi_change_pct)}">${pct(r.analysis_oi_change_pct)}</td>
+     <td class="${cls(r.analysis_gap_pct)}">${pct(r.analysis_gap_pct)}</td>
+     <td class="${cls(r.analysis_day_move_pct)}">${pct(r.analysis_day_move_pct)}</td>`;
+
+   for(const p of r.previous_days||[]){
+     cells+=`
+       <td>${p.in_preopen?'YES':'—'}</td>
+       <td>${p.in_oi_spurt?'YES':'—'}</td>
+       <td class="${cls(p.move_pct)}">${pct(p.move_pct)}</td>`;
+   }
+
+   cells+=`
+     <td>${r.next_date||'—'}</td>
+     <td class="${cls(r.next_day_move_pct)}">${pct(r.next_day_move_pct)}</td>
+     <td>${r.observation||''}</td>`;
+
+   const tr=document.createElement('tr');
+   tr.className='click';
+   tr.innerHTML=cells;
+   tr.onclick=()=>window.open(tv(r.symbol),'_blank');
+   body.appendChild(tr);
+ }
+}
+
+async function impactRun(rebuild=true){
+ const date=$('impactDate').value;
+ if(!date){
+   $('impactStatus').textContent='No saved market date available.';
+   return;
+ }
+
+ $('impactStatus').textContent='Building previous-days impact analysis…';
+
+ if(rebuild){
+   const b=await fetch(`/api/impact/build/${encodeURIComponent(date)}`,{method:'POST'});
+   if(!b.ok){
+     const e=await b.json().catch(()=>({}));
+     $('impactStatus').textContent=e.detail||`Build failed (${b.status})`;
+     return;
+   }
+ }
+
+ const r=await fetch(`/api/impact/${encodeURIComponent(date)}`,{cache:'no-store'});
+ if(!r.ok){
+   const e=await r.json().catch(()=>({}));
+   $('impactStatus').textContent=e.detail||`Impact load failed (${r.status})`;
+   return;
+ }
+
+ impactData=await r.json();
+ impactRender();
+
+ $('impactStatus').textContent=
+   `${date} • previous ${impactData.previous_dates?.length||0} saved sessions • next ${impactData.next_date||'not available yet'} • ${impactData.rows?.length||0} stocks`;
+}
+
+function impactDownload(kind){
+ const date=$('impactDate').value;
+ if(!date)return;
+ window.location.href=`/api/impact/download/${encodeURIComponent(date)}.${kind}`;
+}
+
+function tm0922Pass(r,prefix,pattern){
+ if(pattern==='all')return true;
+ if(pattern==='formation')return r[`${prefix}_status`]==='Candle in formation';
+ return r[`${prefix}_${pattern}`]===true;
+}
+
+function tm0922RenderTable(id,rows){
+ const p5=$('tm0922Pattern5').value;
+ const p15=$('tm0922Pattern15').value;
+ const list=(rows||[]).filter(r=>
+   tm0922Pass(r,'first5',p5) &&
+   tm0922Pass(r,'first15',p15)
+ );
+
+ const body=$(id);
+ body.innerHTML=list.length?'':'<tr><td colspan="7" class="muted">No rows match.</td></tr>';
+
+ list.forEach((r,i)=>{
+   const tr=document.createElement('tr');
+   tr.className='click';
+   tr.innerHTML=`
+     <td>${i+1}</td>
+     <td title="Open ${r.symbol} in TradingView">${r.symbol}</td>
+     <td>${r.sector||'Other / Unmapped'}</td>
+     <td class="${cls(r.gap_pct)}">${pct(r.gap_pct)}</td>
+     <td class="${cls(r.move_pct)}">${pct(r.move_pct)}</td>
+     <td>${tmCandleText(r,'first5')}</td>
+     <td>${tmCandleText(r,'first15')}</td>`;
+   tr.onclick=()=>window.open(tv(r.symbol),'_blank');
+   body.appendChild(tr);
+ });
+}
+
+function tm0922Render(){
+ if(!tm0922Data)return;
+ tm0922RenderTable('tm0922Gainers',tm0922Data.gainers||[]);
+ tm0922RenderTable('tm0922Losers',tm0922Data.losers||[]);
+
+ const stamp=tm0922Data.live_at;
+ const t=stamp?new Date(stamp).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'}):'';
+ const cap=tm0922Data.capture_time||$('tm0922CaptureTime')?.value||'09:22';
+ const savedAt=tm0922Data.snapshot_saved_at
+   ?new Date(tm0922Data.snapshot_saved_at).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})
+   :null;
+
+ $('tm0922GainersTitle').textContent=`LIVE Top Gainers — ${tm0922Data.trade_date||''}`;
+ $('tm0922LosersTitle').textContent=`LIVE Top Losers — ${tm0922Data.trade_date||''}`;
+ if($('tm0922LiveDate')) $('tm0922LiveDate').textContent=tm0922Data.trade_date||'Today';
+
+ const snapText=tm0922Data.snapshot_saved
+   ?`09:22 SNAPSHOT SAVED${savedAt?' at '+savedAt+' IST':''}`
+   :`09:22 SNAPSHOT NOT SAVED YET`;
+
+ $('tm0922Status').textContent=`LIVE DATA • ${tm0922Data.trade_date||''} • updated ${t} IST • auto capture ${cap} IST • ${snapText}`;
+}
+
+async function tm0922LoadSettings(){
+ const r=await fetch('/api/top-movers/0922/settings',{cache:'no-store'});
+ if(r.ok){
+   const d=await r.json();
+   $('tm0922TopN').value=d.top_n??5;
+   $('tm0922CaptureTime').value=d.capture_time||'09:22';
+ }
+}
+
+async function tm0922SaveSettings(){
+ const n=Math.max(1,Math.min(50,Number($('tm0922TopN').value||5)));
+ const ct=$('tm0922CaptureTime').value||'09:22';
+ const r=await fetch(`/api/top-movers/0922/settings?top_n=${n}&capture_time=${encodeURIComponent(ct)}`,{method:'POST'});
+ if(r.ok)$('tm0922Status').textContent=`Capture settings saved: ${ct} IST • Top ${n} each side`;
+}
+
+async function tm0922Load(){
+ const r=await fetch('/api/top-movers/live-today',{cache:'no-store'});
+ if(r.ok){
+   tm0922Data=await r.json();
+   tm0922Render();
+   return;
+ }
+
+ tm0922Data=null;
+ $('tm0922Gainers').innerHTML='<tr><td colspan="7" class="muted">Live mover data is loading…</td></tr>';
+ $('tm0922Losers').innerHTML='<tr><td colspan="7" class="muted">Live mover data is loading…</td></tr>';
+ $('tm0922Status').textContent=`Live Top Movers request failed (${r.status}). Background cache will retry automatically.`;
+}
+
+function tm0922UpdateClock(){
+ if(!$('tm0922Clock'))return;
+ $('tm0922Clock').textContent=new Intl.DateTimeFormat('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date())+' IST';
+}
+setInterval(tm0922UpdateClock,1000);
+setInterval(()=>{
+ if(isVisible('viewTopMovers')){
+   tm0922Load().catch(()=>{});
+ }
+},5000);
+
+async function tm0922Capture(){
+ $('tm0922Status').textContent='Saving today\'s 09:22 snapshot…';
+ const r=await fetch('/api/top-movers/0922',{method:'POST'});
+ if(!r.ok){
+   $('tm0922Status').textContent=`09:22 snapshot save failed (${r.status})`;
+   return;
+ }
+
+ // Snapshot belongs only to the history section. Keep the upper section LIVE.
+ await tm0922Load();
+ await tmTop5LoadDates();
+}
+
+
+function exportExcel(dataset){
+ const params=new URLSearchParams();
+
+ if(dataset==='sectorial'){
+   params.set('sector',$('sector').value);
+ }
+
+ if(dataset==='premarket'){
+   const d=$('preDate')?.value;
+   if(d)params.set('trade_date',d);
+ }
+
+ if(dataset==='oi_spurt'){
+   const d=$('oisDate')?.value;
+   if(d)params.set('trade_date',d);
+ }
+
+ if(dataset==='top_movers'){
+   const d=$('tmHistoryDate')?.value;
+   if(d)params.set('trade_date',d);
+ }
+
+ if(dataset==='previous_selection'){
+   const start=$('prevStartDate')?.value;
+   const end=$('prevEndDate')?.value;
+   if(start)params.set('start_date',start);
+   if(end)params.set('end_date',end);
+   params.set('oi_top_n',String(Number($('prevOiTopN')?.value||30)));
+   params.set('preopen_top_n',String(Number($('prevPreTopN')?.value||30)));
+   params.set('min_common_sessions',String(Number($('prevMinSessions')?.value||1)));
+   if($('prevMaxMove')?.value!==''){
+     params.set('max_abs_net_move',$('prevMaxMove').value);
+   }
+ }
+
+ window.location.href=
+   `/api/export/${encodeURIComponent(dataset)}.xlsx?${params.toString()}`;
+}
+
+function tmTop5RenderTable(id,rows){
+ const body=$(id);
+
+ body.innerHTML=(rows||[]).length
+   ?''
+   :'<tr><td colspan="5" class="muted">No saved Top-5 rows.</td></tr>';
+
+ (rows||[]).forEach((r,i)=>{
+   const tr=document.createElement('tr');
+   tr.className='click';
+
+   tr.innerHTML=`
+     <td>${i+1}</td>
+     <td title="Open ${r.symbol} in TradingView">${r.symbol}</td>
+     <td>${r.sector||'Other / Unmapped'}</td>
+     <td class="${cls(r.gap_pct)}">${pct(r.gap_pct)}</td>
+     <td class="${cls(r.move_pct)}">${pct(r.move_pct)}</td>`;
+
+   tr.onclick=()=>window.open(
+     tv(r.symbol),
+     '_blank'
+   );
+
+   body.appendChild(tr);
+ });
+}
+
+function tmTop5Render(){
+ if(!tmTop5Data)return;
+
+ tmTop5RenderTable(
+   'tmTop5Gainers',
+   tmTop5Data.gainers||[]
+ );
+
+ tmTop5RenderTable(
+   'tmTop5Losers',
+   tmTop5Data.losers||[]
+ );
+
+ $('tmTop5Status').textContent=
+   `${tmTop5Data.trade_date||''} • ${tmTop5Data.basis||''} • ${
+     tmTop5Data.saved_at
+       ?new Date(tmTop5Data.saved_at).toLocaleTimeString()
+       :''
+   }`;
+}
+
+async function tmTop5LoadDates(){
+ const r=await fetch(
+   '/api/top-movers/dates',
+   {cache:'no-store'}
+ );
+
+ if(!r.ok)return;
+
+ const d=await r.json();
+ const el=$('tmTop5Date');
+ const old=el.value;
+
+ el.innerHTML='';
+
+ for(const row of d.dates||[]){
+   const o=document.createElement('option');
+   o.value=row.trade_date;
+   o.textContent=row.trade_date;
+   el.appendChild(o);
+ }
+
+ if(
+   old
+   && [...el.options].some(o=>o.value===old)
+ ){
+   el.value=old;
+ }
+}
+
+async function tmTop5Load(){
+ const date=$('tmTop5Date').value;
+ const basis=$('tmTop5Basis').value;
+
+ if(!date){
+   $('tmTop5Status').textContent=
+     'No Top-5 history date available.';
+   return;
+ }
+
+ const r=await fetch(
+   `/api/top-movers/top5/${encodeURIComponent(date)}?basis=${encodeURIComponent(basis)}`,
+   {cache:'no-store'}
+ );
+
+ if(!r.ok){
+   tmTop5Data=null;
+
+   $('tmTop5Gainers').innerHTML=
+     '<tr><td colspan="5" class="muted">No saved rows.</td></tr>';
+
+   $('tmTop5Losers').innerHTML=
+     '<tr><td colspan="5" class="muted">No saved rows.</td></tr>';
+
+   $('tmTop5Status').textContent=
+     `No ${basis==='0922'?'09:22':'EOD'} Top-5 data for ${date}.`;
+
+   return;
+ }
+
+ tmTop5Data=await r.json();
+ tmTop5Render();
+}
+
+async function tmTop5SaveEod(){
+ $('tmTop5Status').textContent=
+   'Saving full-universe EOD Top 5…';
+
+ const r=await fetch(
+   '/api/top-movers/top5/eod',
+   {method:'POST'}
+ );
+
+ if(!r.ok){
+   $('tmTop5Status').textContent=
+     `EOD Top-5 save failed (${r.status})`;
+   return;
+ }
+
+ tmTop5Data=await r.json();
+
+ await tmTop5LoadDates();
+
+ $('tmTop5Basis').value='eod';
+ $('tmTop5Date').value=
+   tmTop5Data.trade_date;
+
+ tmTop5Render();
+}
+
+function chartPopulateSeries(){
+ if(!marketChartData)return;const el=$('chartSeries'),cur=el.value;el.innerHTML='';for(const name of Object.keys(marketChartData.series||{})){const o=document.createElement('option');o.value=name;o.textContent=name;el.appendChild(o)}if(cur&&[...el.options].some(o=>o.value===cur))el.value=cur;else if([...el.options].some(o=>o.value==='Nifty 50'))el.value='Nifty 50';
+}
+async function loadMarketChartDates(){
+ const r=await fetch('/api/market-charts/dates',{cache:'no-store'}),d=await r.json(),el=$('chartDate'),old=el.value;el.innerHTML='';for(const dt of d.dates||[]){const o=document.createElement('option');o.value=dt;o.textContent=dt;el.appendChild(o)}if(old&&[...el.options].some(o=>o.value===old))el.value=old;else if(el.options.length)el.value=el.options[el.options.length-1].value;
+}
+function drawMarketChart(){
+ const canvas=$('marketChartCanvas');if(!canvas||!marketChartData)return;const selected=$('chartSeries').value,ser=marketChartData.series?.[selected];if(!ser)return;
+ const pts=ser.points||[],levels=ser.levels||{},ctx=canvas.getContext('2d'),rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;canvas.width=Math.max(900,Math.floor(rect.width*dpr));canvas.height=Math.floor(600*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);const W=rect.width,H=600,p={l:76,r:135,t:35,b:45};ctx.clearRect(0,0,W,H);
+ const vals=[...pts.map(x=>x.price),...Object.values(levels).filter(Number.isFinite)];if(!vals.length){ctx.fillStyle='#94a3b8';ctx.font='16px sans-serif';ctx.fillText('Price chart data is loading in background…',65,80);return}
+ let min=Math.min(...vals),max=Math.max(...vals);if(min===max){min-=1;max+=1}const m=(max-min)*.08;min-=m;max+=m;const x=i=>p.l+(pts.length<=1?0:i/(pts.length-1))*(W-p.l-p.r),y=v=>p.t+(max-v)/(max-min)*(H-p.t-p.b);
+ ctx.strokeStyle='#263348';ctx.lineWidth=1;ctx.font='11px sans-serif';for(let i=0;i<=6;i++){const yy=p.t+i*(H-p.t-p.b)/6;ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();const v=max-i*(max-min)/6;ctx.fillStyle='#94a3b8';ctx.fillText(v.toFixed(2),6,yy+4)}
+ const levelColors={PDH:'#22c55e',PDL:'#ef4444',PDC:'#f59e0b',PWH:'#10b981',PWL:'#f43f5e',PWC:'#fbbf24',PWO:'#a78bfa',CWO:'#38bdf8'};let idx=0;for(const [name,v] of Object.entries(levels)){if(!Number.isFinite(v))continue;const yy=y(v),color=levelColors[name]||'#64748b';ctx.strokeStyle=color;ctx.lineWidth=1;ctx.setLineDash(name.includes('Ago')?[3,4]:[]);ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=color;ctx.font='10px sans-serif';ctx.fillText(`${name} ${Number(v).toFixed(2)}`,W-p.r+5,yy+3);idx++}
+ ctx.strokeStyle='#e2e8f0';ctx.lineWidth=2.2;ctx.beginPath();pts.forEach((r,i)=>{const xx=x(i),yy=y(r.price);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();
+ ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';const step=Math.max(1,Math.ceil(pts.length/8));for(let i=0;i<pts.length;i+=step)ctx.fillText(pts[i].time,x(i)-14,H-14);
+ canvas._marketGeom={pts,x,y,p,W,H};$('marketChartTitle').textContent=`${selected} — 5-Minute Price`;
+}
+function marketChartHover(ev){
+ const c=$('marketChartCanvas'),tip=$('marketChartTooltip'),g=c?c._marketGeom:null;if(!g||!g.pts.length)return;const r=c.getBoundingClientRect(),mx=ev.clientX-r.left;let best=0,dist=1e9;g.pts.forEach((_,i)=>{const d=Math.abs(g.x(i)-mx);if(d<dist){dist=d;best=i}});const row=g.pts[best];tip.innerHTML=`<b>${row.time}</b><br>Price: ${Number(row.price).toFixed(2)}`;tip.style.display='block';tip.style.left=`${Math.min(r.width-125,Math.max(5,mx+10))}px`;tip.style.top='55px';
+}
+async function loadMarketCharts(){
+ const date=$('chartDate')?.value||'';const r=await fetch(`/api/market-charts/5m${date?'?trade_date='+encodeURIComponent(date):''}`,{cache:'no-store'});if(!r.ok){$('chartStatus').textContent=`Chart load failed (${r.status})`;return}marketChartData=await r.json();chartPopulateSeries();drawMarketChart();const selected=$('chartSeries').value,ser=marketChartData.series?.[selected];$('chartStatus').textContent=`${marketChartData.updated_at?'Updated '+new Date(marketChartData.updated_at).toLocaleTimeString():'Background chart cache is loading'} • ${ser?.basis||''}`;
+}
+function restartMarketChartTimer(){if(marketChartTimer)clearInterval(marketChartTimer);marketChartTimer=setInterval(()=>{if(isVisible('viewCharts'))loadMarketCharts().catch(()=>{})},5000)}
+async function init(){
+ try{
+   const sectorsResp=await fetch('/api/sectors',{cache:'no-store'});
+   if(!sectorsResp.ok)throw new Error(`Sectors API ${sectorsResp.status}`);
+   const sectorData=await sectorsResp.json();
+
+   for(const s of sectorData.sectors||[]){
+     const sectorEl=$('sector');
+     if(sectorEl){const o=document.createElement('option');o.value=s;o.textContent=s;sectorEl.appendChild(o)}
+     const oiEl=$('oiSector');
+     if(oiEl){const q=document.createElement('option');q.value=s;q.textContent=s;oiEl.appendChild(q)}
+   }
+
+   if($('sector')) $('sector').onchange=()=>{applySectorFromLocalCache(); if(isVisible('viewBreadth')) loadBreadth().catch(()=>{})};
+   if($('stockSort')) $('stockSort').onchange=renderStocks;
+   if($('levelFilter')) $('levelFilter').onchange=renderStocks;$('sectorPattern5').onchange=renderStocks;$('sectorPattern15').onchange=renderStocks;
+   if($('sectorSort')) $('sectorSort').onchange=renderSummary;
+
+   for(const id of ['preSort','prePattern5','prePattern15','maxCombined','maxValueRank','maxVolumeRank','minGap','maxGap']){
+     if($(id)) $(id).onchange=renderPre;
+   }
+   if($('preDate')) $('preDate').onchange=loadPre;
+   if($('capturePre')) $('capturePre').onclick=capturePre;
+   if($('saveRetention')) $('saveRetention').onclick=saveRetention;
+   if($('saveEod')) $('saveEod').onclick=saveEod;
+   if($('downloadPre')) $('downloadPre').onclick=()=>{const d=$('preDate')?.value;if(d)location.href=`/api/premarket/download/${d}`};
+   if($('importPre')) $('importPre').onclick=importPre;
+
+   if($('oiSector')) $('oiSector').onchange=renderOI;
+   if($('oiSort')) $('oiSort').onchange=renderOI;
+   if($('oiDirection')) $('oiDirection').onchange=renderOI;
+   if($('oiRefresh')) $('oiRefresh').onclick=()=>loadOI(true);
+
+   if($('tabSector')) $('tabSector').onclick=()=>show($('viewSector'),$('tabSector'));
+   if($('tabBreadth')) $('tabBreadth').onclick=async()=>{show($('viewBreadth'),$('tabBreadth'));lazyLoaded.breadth=true;await loadBreadthDates();await loadBreadth();};
+   if($('tabPre')) $('tabPre').onclick=async()=>{
+     show($('viewPre'),$('tabPre'));
+     if(!lazyLoaded.pre){
+       lazyLoaded.pre=true;
+       await Promise.all([
+         loadPreDates(false),
+         loadRetention()
+       ]);
+     }else{
+       await loadPreDates(false);
+     }
+   };
+   if($('tabOI')) $('tabOI').onclick=async()=>{
+     show($('viewOI'),$('tabOI'));
+     if(!lazyLoaded.oi){
+       lazyLoaded.oi=true;
+       await loadOI(false);
+     }
+   };
+   if($('tabOISpurt')) $('tabOISpurt').onclick=async()=>{
+     show($('viewOISpurt'),$('tabOISpurt'));
+     if(!lazyLoaded.ois){
+       lazyLoaded.ois=true;
+       await Promise.all([
+         loadOISpurtSettings(),
+         loadOISpurtV13Settings(),
+         loadOISpurtDates(false)
+       ]);
+     }
+     await loadOISpurt(false);
+   };
+   if($('oisRefresh')) $('oisRefresh').onclick=()=>loadOISpurt(true);
+   if($('oisCapture')) $('oisCapture').onclick=captureOISpurtWithCommon;
+   if($('oisSaveEod')) $('oisSaveEod').onclick=saveOISpurtEodWithCommon;
+   if($('oisSaveSettings')) $('oisSaveSettings').onclick=saveOISpurtV13Settings;
+   if($('oisMode')) $('oisMode').onchange=()=>loadOISpurt(false);
+   if($('oisDate')) $('oisDate').onchange=async()=>{if($('oisMode').value==='history')await loadOISpurt(false);await loadSavedOISpurtCommon()};
+   for(const id of ['oisTopN','oisMinMove','oisMaxMove','oisDirection']){if($(id))$(id).onchange=()=>{if(id==='oisTopN')loadOISpurt(false);else renderOISpurt()}}
+   if($('tabPrevData')) $('tabPrevData').onclick=async()=>{
+     show($('viewPrevData'),$('tabPrevData'));
+     lazyLoaded.prev=true;
+     await loadPreviousDataDates();
+   };
+   if($('tabImpact')) $('tabImpact').onclick=async()=>{show($('viewImpact'),$('tabImpact'));if(!lazyLoaded.impact){lazyLoaded.impact=true;await Promise.all([impactLoadSettings(),impactLoadDates()])}await impactRun(false)};
+   if($('tabCharts')) $('tabCharts').onclick=async()=>{show($('viewCharts'),$('tabCharts'));await loadMarketChartDates();await loadMarketCharts();restartMarketChartTimer()};
+   if($('tabTopMovers')) $('tabTopMovers').onclick=async()=>{
+     show($('viewTopMovers'),$('tabTopMovers'));
+
+     if(!lazyLoaded.tm){
+       lazyLoaded.tm=true;
+
+       await Promise.all([
+         tmLoadSettings(),
+         tmLoadDates(false),
+         tmRefreshBrowserCache(true)
+       ]);
+
+       tmPopulateUniverseControls();
+     }
+
+     tmRenderLocalInstant();
+     tmRefreshDetails().catch(()=>{});
+     tmRestartTimer();
+     await tm0922LoadSettings();
+     tm0922UpdateClock();
+     await tm0922Load();
+     await tmTop5LoadDates();
+   };
+   if($('prevRun')) $('prevRun').onclick=runPreviousDataSelection;
+   if($('tmUniverse')) $('tmUniverse').onchange=()=>{tmPopulateUniverseControls();tmRenderLocalInstant();tmRefreshDetails().catch(()=>{})};
+   if($('tmSector')) $('tmSector').onchange=()=>{tmPopulateStockDropdown();tmRenderLocalInstant();tmRefreshDetails().catch(()=>{})};
+   if($('tmStock')) $('tmStock').onchange=tmRenderLocalInstant;
+   if($('tmFetch')) $('tmFetch').onclick=()=>tmFetch(true);
+   if($('tmSaveSettings')) $('tmSaveSettings').onclick=async()=>{await tmSaveSettings();tmRestartTimer()};
+   if($('tmSaveSnapshot')) $('tmSaveSnapshot').onclick=tmSaveSnapshot;
+   if($('tmSaveEod')) $('tmSaveEod').onclick=tmSaveEod;
+   if($('tmMode')) $('tmMode').onchange=()=>tmFetch(false);
+   if($('tmHistoryDate')) $('tmHistoryDate').onchange=()=>{if($('tmMode').value==='history')tmLoadHistory()};
+   if($('tmHistoryBasis')) $('tmHistoryBasis').onchange=()=>{if($('tmMode').value==='history')tmLoadHistory()};
+   if($('tmPattern5')) $('tmPattern5').onchange=tmRender;
+   if($('tmPattern15')) $('tmPattern15').onchange=tmRender;
+   if($('tmTopN')) $('tmTopN').onchange=()=>{tmRenderLocalInstant();tmRefreshDetails().catch(()=>{})};
+   if($('tmMaxGainer')) $('tmMaxGainer').onchange=()=>{tmRenderLocalInstant();tmRefreshDetails().catch(()=>{})};
+   if($('tmMaxLoser')) $('tmMaxLoser').onchange=()=>{tmRenderLocalInstant();tmRefreshDetails().catch(()=>{})};
+   if($('impactRun')) $('impactRun').onclick=()=>impactRun(true);
+   if($('impactSaveSettings')) $('impactSaveSettings').onclick=impactSaveSettings;
+   if($('impactCsv')) $('impactCsv').onclick=()=>impactDownload('csv');
+   if($('impactXlsx')) $('impactXlsx').onclick=()=>impactDownload('xlsx');
+   if($('impactDate')) $('impactDate').onchange=()=>impactRun(false);
+
+   if($('tm0922SaveSettings')) $('tm0922SaveSettings').onclick=tm0922SaveSettings;
+   if($('tm0922Capture')) $('tm0922Capture').onclick=async()=>{await tm0922Capture();await tmTop5LoadDates();};
+   if($('tm0922RefreshLive')) $('tm0922RefreshLive').onclick=()=>tm0922Load();
+   if($('tm0922Pattern5')) $('tm0922Pattern5').onchange=tm0922Render;
+   if($('tm0922Pattern15')) $('tm0922Pattern15').onchange=tm0922Render;
+   if($('exportSectorExcel')) $('exportSectorExcel').onclick=()=>exportExcel('sectorial');
+   if($('exportBreadthExcel')) $('exportBreadthExcel').onclick=()=>exportExcel('breadth');
+   if($('exportPreExcel')) $('exportPreExcel').onclick=()=>exportExcel('premarket');
+   if($('exportOIExcel')) $('exportOIExcel').onclick=()=>exportExcel('futures_oi');
+   if($('exportOISpurtExcel')) $('exportOISpurtExcel').onclick=()=>exportExcel('oi_spurt');
+   if($('exportPrevExcel')) $('exportPrevExcel').onclick=()=>exportExcel('previous_selection');
+   if($('exportTopMoversExcel')) $('exportTopMoversExcel').onclick=()=>exportExcel('top_movers');
+
+   if($('tmTop5Load')) $('tmTop5Load').onclick=tmTop5Load;
+   if($('tmTop5SaveEod')) $('tmTop5SaveEod').onclick=tmTop5SaveEod;
+   if($('tmTop5Basis')) $('tmTop5Basis').onchange=tmTop5Load;
+   if($('tmTop5Date')) $('tmTop5Date').onchange=tmTop5Load;
+
+   if($('chartRefresh')) $('chartRefresh').onclick=loadMarketCharts;
+   if($('chartSeries')) $('chartSeries').onchange=drawMarketChart;
+
+   window.addEventListener(
+     'resize',
+     ()=>{
+       if(isVisible('viewCharts')){
+         drawMarketChart();
+       }
+     }
+   );
+
+   if($('breadthUniverse')) $('breadthUniverse').onchange=drawBreadthCanvas;
+   if($('breadthDate')) $('breadthDate').onchange=loadBreadth;
+   if($('breadthToday')) $('breadthToday').onclick=async()=>{await loadBreadthDates();if($('breadthDate').options.length)$('breadthDate').selectedIndex=$('breadthDate').options.length-1;await loadBreadth()};
+   if($('breadthCanvas')){$('breadthCanvas').addEventListener('mousemove',breadthHover);$('breadthCanvas').addEventListener('mouseleave',()=>{$('breadthTooltip').style.display='none'})}
+   if($('chartDate')) $('chartDate').onchange=loadMarketCharts;
+   if($('chartToday')) $('chartToday').onclick=async()=>{await loadMarketChartDates();if($('chartDate').options.length)$('chartDate').selectedIndex=$('chartDate').options.length-1;await loadMarketCharts()};
+   if($('marketChartCanvas')){$('marketChartCanvas').addEventListener('mousemove',marketChartHover);$('marketChartCanvas').addEventListener('mouseleave',()=>{$('marketChartTooltip').style.display='none'})}
+   if($('refreshAll')) $('refreshAll').onclick=refresh;
+
+   // V18: first paint loads only the visible Sectorial tab.
+   // All heavy modules are lazy-loaded on first tab click.
+   await Promise.all([
+     refreshSectorBrowserCache(true).catch(e=>console.error('sector browser cache',e)),
+     loadSummary().catch(e=>console.error('loadSummary',e))
+   ]);
+
+   // OI is useful in the sector table, but load it after first paint.
+   setTimeout(()=>{
+     loadOI(false)
+       .then(()=>renderStocks())
+       .catch(e=>console.error('background OI',e));
+   },100);
+   if($('globalStatus')) $('globalStatus').textContent=`Ready instantly • cached data • ${new Date().toLocaleTimeString()}`;
+   timer=setInterval(refresh,1000);
+   oiSpurtTimer=setInterval(()=>{if(isVisible('viewOISpurt')&&($('oisMode')?.value||'live')==='live')loadOISpurt(false).catch(()=>{})},1000);
+ }catch(e){
+   console.error('Startup failure',e);
+   if($('globalStatus')) $('globalStatus').textContent=`Startup error: ${e.message}`;
+ }
+}
+
+init();
+</script></body></html>
