@@ -1,4 +1,4 @@
-const CACHE_NAME = "india-fo-scanner-pwa-v27-1";
+const CACHE_NAME = "india-fo-scanner-v29";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",

@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="F&O Scanner">
-<title>India F&O Intraday Scanner v4</title>
+<title>India F&O Scanner v28</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111827;--panel2:#172033;--border:#263247;--text:#e5e7eb;--muted:#94a3b8;--pos:#22c55e;--neg:#ef4444;--blue:#3b82f6;--amber:#f59e0b}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
@@ -43,10 +43,34 @@ svg{width:100%;height:390px;display:block}.gridline{stroke:#253047;stroke-width:
   .scroll{max-height:68vh;-webkit-overflow-scrolling:touch}
   canvas{max-width:100%}
 }
+
+
+/* V28 eye-comfort UI */
+:root{--bg:#0b1523;--panel:#142133;--panel2:#1b2b40;--border:#334861;--text:#f1f5f9;--muted:#b7c4d6;--blue:#60a5fa;--amber:#fbbf24}
+body{line-height:1.45;background:linear-gradient(180deg,#0b1523 0%,#0c1726 100%)}
+.wrap{max-width:1680px;padding:18px 18px 28px}.version{font-size:13px;letter-spacing:.2px;margin-bottom:12px;color:#8bc1ff}
+.tabs{gap:8px;margin-bottom:16px}.tabs button,.btn{border-radius:10px;padding:10px 14px;font-weight:650;border-color:#39516e;transition:.15s ease;box-shadow:0 1px 0 rgba(255,255,255,.02)}
+.tabs button:hover,.btn:hover{background:#1c3048;border-color:#5c7fa7}.tabs button.active{background:#24466f;border-color:#7ab7ff;color:#fff;box-shadow:0 0 0 1px rgba(96,165,250,.18)}
+.card{border-radius:14px;border-color:#31465e;box-shadow:0 6px 20px rgba(0,0,0,.16);margin-bottom:16px}.card h2{font-size:17px;line-height:1.3;padding:13px 15px;color:#f8fafc;background:linear-gradient(90deg,rgba(96,165,250,.09),transparent);letter-spacing:.1px}
+.controls{gap:12px;margin-bottom:14px}.controls>div{background:rgba(20,33,51,.55);border:1px solid rgba(51,72,97,.6);padding:9px;border-radius:10px}label{font-size:12px;color:#c5d2e3;font-weight:650;margin-bottom:6px}
+select,input[type=number],input[type=date],input[type=time],input[type=file]{background:#101c2c;border-color:#3a516d;min-height:42px;padding:9px 10px;color:#f1f5f9}
+table{background:rgba(10,20,33,.25)}th,td{padding:9px 10px;font-size:13px;border-bottom-color:rgba(148,163,184,.16)}th{background:#1a2a3d;color:#cbd8e7;font-size:12px;font-weight:750;letter-spacing:.1px}tbody tr:nth-child(even){background:rgba(255,255,255,.012)}tbody tr:hover{background:rgba(96,165,250,.065)}
+.status,.foot{font-size:12px;color:#b7c4d6}.kpi{background:#101c2c;border-color:#31465e;padding:12px}.actions{padding:10px 0 13px}
+.tab-heading{margin:4px 0 16px;padding:14px 16px;background:linear-gradient(135deg,rgba(31,50,75,.92),rgba(19,32,50,.92));border:1px solid #38506c;border-radius:14px;box-shadow:0 5px 18px rgba(0,0,0,.15)}
+.tab-heading h1{margin:0 0 5px;font-size:22px;line-height:1.25;color:#f8fafc}.tab-heading p{margin:0;color:#b8c7d9;font-size:13px;max-width:1100px}
+.summary-kpis{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;margin:10px 0 14px}.summary-kpi{background:#101c2c;border:1px solid #31465e;border-radius:12px;padding:12px}.summary-kpi b{display:block;font-size:20px;margin-top:3px;color:#f8fafc}.summary-kpi span{color:#b7c4d6;font-size:12px}
+.insight-box{padding:12px 14px;border:1px solid #36516e;border-radius:12px;background:#101d2d;margin:10px 0 14px}.insight-box ul{margin:6px 0 2px;padding-left:20px}.insight-box li{margin:5px 0;color:#d8e3ef}
+.chart-shell{position:relative;padding:10px;background:#0c1726;border-top:1px solid #2f435a}.chart-legend{display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;color:#b7c4d6;font-size:12px}.legend-chip{border:1px solid #3a516d;border-radius:999px;padding:3px 8px;background:#101c2c}
+
+.level-controls{display:flex;flex-wrap:wrap;gap:8px 14px;padding:10px 12px;margin:8px 0;background:#101c2c;border:1px solid #31465e;border-radius:10px;align-items:center}.level-controls label{display:flex;align-items:center;gap:6px;margin:0;color:#d6e0ec;font-size:12px;font-weight:600}.level-controls input{width:auto;margin:0}.zoom-note{color:#93c5fd;font-size:12px}.sector-groups{display:grid;gap:10px;margin-top:12px}.sector-group{background:#101c2c;border:1px solid #334a64;border-radius:12px;overflow:hidden}.sector-group>summary{cursor:pointer;list-style:none;padding:12px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between;background:#16263a;font-weight:700;color:#f8fafc}.sector-group>summary::-webkit-details-marker{display:none}.sector-group>summary:before{content:'▶';font-size:10px;color:#93c5fd}.sector-group[open]>summary:before{content:'▼'}.sector-head-metrics{display:flex;flex-wrap:wrap;gap:8px;font-weight:500;font-size:12px;color:#c4d1df}.metric-pill{padding:3px 7px;border:1px solid #405976;border-radius:999px;background:#0e1a2a}.matrix-wrap{overflow:auto;max-height:520px}.history-matrix{min-width:1150px}.history-matrix th{white-space:nowrap;position:sticky;top:0;z-index:2}.history-matrix td{vertical-align:top;white-space:nowrap}.matrix-cell b{display:block;font-size:12px}.matrix-cell small{display:block;color:#98aabe;font-size:10px;margin-top:2px}.rs-pos{color:#5ee6a8}.rs-neg{color:#ff8b8b}.sector-row td{background:#14243a;font-weight:700}.compact-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.chart-shell.zoom-enabled canvas{cursor:crosshair;touch-action:none}.chart-shell:not(.zoom-enabled) canvas{cursor:default;touch-action:pan-y}.selection-box{position:absolute;border:1px dashed #93c5fd;background:rgba(59,130,246,.16);pointer-events:none;display:none;z-index:4}
+@media(max-width:900px){.summary-kpis{grid-template-columns:1fr 1fr}.tab-heading h1{font-size:19px}.wrap{padding:10px}}
+@media(max-width:550px){.summary-kpis{grid-template-columns:1fr}.card h2{font-size:16px}.tab-heading{padding:12px}.tab-heading p{font-size:12px}}
+
 </style>
 
 <!-- OI SPURT SELECTION -->
 <section id="viewOISpurt" class="hidden">
+<div class="tab-heading"><h1>OI Spurt Selection</h1><p>Ranks stocks by % change in OI and compares them with Sectorial and Pre-Market selection; opening and EOD snapshots are retained.</p></div>
 <div class="controls">
 <div><label>Top OI-spurt stocks</label><input id="oisTopN" type="number" min="5" max="100" value="30"></div>
 <div><label>Saved trading sessions</label><input id="oisKeepSessions" type="number" min="1" max="60" value="14"></div>
@@ -110,6 +134,7 @@ Live OI is polled from NSE OI Spurts. Price Gap/Current % uses the existing Yaho
 
 <!-- PREVIOUS DATA STOCK SELECTION -->
 <section id="viewPrevData" class="hidden">
+<div class="tab-heading"><h1>Stock Selection Based on Previous Data</h1><p>Search saved Pre-Market + OI common-stock history across a chosen date range and identify repeated selections.</p></div>
 <div class="controls">
 <div><label>Start saved date</label><select id="prevStartDate"></select></div>
 <div><label>End saved date</label><select id="prevEndDate"></select></div>
@@ -139,6 +164,7 @@ For a single selected date, Period Net % is that day's close/current move from P
 
 <!-- TOP GAINERS & LOSERS -->
 <section id="viewTopMovers" class="hidden">
+<div class="tab-heading"><h1>Top Gainers & Losers</h1><p>Independent live mover scanner with configurable universes, candle filters, timed snapshots and EOD history.</p></div>
 <div class="controls">
 <div><label>Universe</label><select id="tmUniverse">
 <option value="Nifty 50">Nifty 50</option>
@@ -301,6 +327,7 @@ This tab is independent from the other stock-selection methods. Nifty 50/100/500
 
 <!-- PREVIOUS DAYS IMPACT ANALYSIS -->
 <section id="viewImpact" class="hidden">
+<div class="tab-heading"><h1>Previous Days Impact Analysis</h1><p>Study how Pre-Market/OI-selected stocks behaved on prior sessions, the analysis day and the next saved trading day.</p></div>
 <div class="controls">
 <div><label>Analysis date</label><select id="impactDate"></select></div>
 <div><label>Pre-Market Top N</label><input id="impactPreN" type="number" min="5" max="100" value="30"></div>
@@ -331,6 +358,7 @@ This tab is independent from the other stock-selection methods. Nifty 50/100/500
 
 
 <section id="viewCharts" class="hidden">
+<div class="tab-heading"><h1>Live 5-Minute Market Charts</h1><p>Intraday Nifty/sector price context with important previous-day, weekly and historical levels plus saved chart history.</p></div>
 <div class="controls">
 <div><label>Nifty / Sector chart</label><select id="chartSeries"></select></div>
 <div><label>Saved chart date</label><select id="chartDate"></select></div>
@@ -372,19 +400,68 @@ async function installPwaApp(){
 }
 </script></head>
 <body><div class="wrap">
-<div class="version">India F&O Intraday Scanner v26 — Live Top Movers Route Fix</div>
+<div class="version">India F&O Intraday Scanner v29 — Daily + Historical Matrix, RS & Chart Zoom</div>
+
+
+<!-- V29 LIVE DAILY INDEX CHART -->
+<section id="viewDailyChart" class="hidden">
+<div class="tab-heading"><h1>Live Daily Chart</h1><p>Select Nifty or a sector index and view a large live daily candlestick chart with previous-day, prior-session, weekly and monthly reference levels.</p></div>
+<div class="controls">
+<div><label>Index / Sector Index</label><select id="dailyIndexSelect"></select></div>
+<div><label>Auto refresh</label><select id="dailyChartRefresh"><option value="15">15 seconds</option><option value="30" selected>30 seconds</option><option value="60">60 seconds</option></select></div>
+<div><label>&nbsp;</label><button id="dailyChartRefreshNow" class="btn">Refresh Chart Now</button></div>
+<div><label>&nbsp;</label><button id="dailyChartResetZoom" class="btn">Reset Zoom</button></div>
+</div>
+<div class="level-controls">
+<label><input id="dailyZoomTool" type="checkbox"> Select area to zoom</label>
+<span class="zoom-note">Turn ON, then drag across candles to enlarge that date area.</span>
+<label><input id="dailyLvlPrev" type="checkbox" checked> PDH / PDL</label>
+<label><input id="dailyLvlD1" type="checkbox" checked> D1H / D1L</label>
+<label><input id="dailyLvlD2" type="checkbox" checked> D2H / D2L</label>
+<label><input id="dailyLvlWeek" type="checkbox" checked> PWH / PWL</label>
+<label><input id="dailyLvlMonth" type="checkbox" checked> PMH / PML</label>
+<label><input id="dailyShowLevelText" type="checkbox" checked> Show level text labels</label>
+</div>
+<div id="dailyChartStatus" class="status"></div>
+<div class="card">
+<h2 id="dailyChartTitle">Daily Index Chart</h2>
+<div class="chart-legend"><span class="legend-chip">PDH / PDL = previous session</span><span class="legend-chip">D1 / D2 = earlier sessions + weekday</span><span class="legend-chip">RS not used on index chart</span><span class="legend-chip">Use checkboxes to declutter levels</span></div>
+<div id="dailyChartShell" class="chart-shell"><canvas id="dailyChartCanvas" width="1500" height="720" style="width:100%;height:720px;border-radius:10px"></canvas><div id="dailyChartSelection" class="selection-box"></div><div id="dailyChartTooltip" style="display:none;position:absolute;pointer-events:none;background:#0b1220;color:#fff;border:1px solid #526b88;padding:8px 10px;border-radius:8px;font-size:12px;z-index:5"></div></div>
+</div>
+</section>
+
+<!-- V29 SECTOR & STOCK SUMMARY -->
+<section id="viewSectorStockSummary" class="hidden">
+<div class="tab-heading"><h1>Sector & Stock Summary</h1><p>Saved EOD study of sector behaviour and each F&O stock's OI change and price move. Use the date range to understand which sectors and stocks repeatedly showed strength, weakness or OI activity.</p></div>
+<div class="controls">
+<div><label>History sessions to keep</label><input id="sssKeep" type="number" min="1" max="60" value="14"></div>
+<div><label>Start date</label><select id="sssStart"></select></div>
+<div><label>End date</label><select id="sssEnd"></select></div>
+<div><label>Sector filter</label><select id="sssSector"><option>All Sectors</option></select></div>
+</div>
+<div class="actions"><button id="sssSaveSettings" class="btn">Save History Setting</button><button id="sssLoad" class="btn">Show Range Summary</button><button id="sssBackfill" class="btn">Backfill / Repair Historical Data</button><button id="sssSaveToday" class="btn">Save / Rebuild Today</button><button id="sssExport" class="btn">Export Range Excel</button></div>
+<div id="sssStatus" class="status"></div>
+<div id="sssKpis" class="summary-kpis"></div>
+<div id="sssInsights" class="insight-box"></div>
+<div class="grid2">
+<div class="card"><h2>Sector Range Summary</h2><div class="scroll"><table><thead><tr><th>Sector</th><th>Sessions</th><th>Stocks</th><th>Latest Sector %</th><th>Avg Sector %</th><th>Avg Stock %</th><th>Avg OI %</th></tr></thead><tbody id="sssSectorRows"></tbody></table></div></div>
+<div class="card"><h2>Stock Period Summary — including RS vs Sector</h2><div class="scroll"><table><thead><tr><th>Stock</th><th>Sector</th><th>Sessions</th><th>Avg Move %</th><th>Avg OI %</th><th>Avg RS vs Sector</th><th>+ / -</th></tr></thead><tbody id="sssStockRows"></tbody></table></div></div>
+</div>
+<div class="card"><h2>Daily + Historical Sector / Stock Matrix</h2><div class="foot">Each sector is collapsible. Every date cell shows Stock Move %, EOD OI Change %, and RS vs Sector. RS = Stock Move % − Sector Move %. Positive RS means the stock outperformed its own sector that day.</div><div class="compact-actions"><button id="sssExpandAll" class="btn">Expand All Sectors</button><button id="sssCollapseAll" class="btn">Collapse All Sectors</button></div><div id="sssGrouped" class="sector-groups"></div></div>
+</section>
 
 <div class="tabs">
 <button id="tabSector" class="active">Sectorial Stock Selection</button>
 <button id="tabBreadth">Market Breadth</button>
 <button id="tabPre">NSE Pre-Market Selection</button>
-<button id="tabOI">Futures OI</button><button id="tabOISpurt">OI Spurt Selection</button><button id="tabPrevData">Stock Selection Based on Previous Data</button><button id="tabTopMovers">Top Gainers & Losers</button><button id="tabImpact">Previous Days Impact Analysis</button><button id="tabCharts">Live 5-Minute Market Charts</button>
+<button id="tabOI">Futures OI</button><button id="tabOISpurt">OI Spurt Selection</button><button id="tabPrevData">Stock Selection Based on Previous Data</button><button id="tabTopMovers">Top Gainers & Losers</button><button id="tabImpact">Previous Days Impact Analysis</button><button id="tabCharts">Live 5-Minute Market Charts</button><button id="tabDailyChart">Live Daily Chart</button><button id="tabSectorStockSummary">Sector & Stock Summary</button>
 <button id="refreshAll" class="btn">Refresh now</button><button id="installPwa" class="btn" style="display:none" onclick="installPwaApp()">Install App</button><button id="exportSectorExcel" class="btn">Export Sector Excel</button>
 </div>
 <div id="globalStatus" class="status">Loading…</div>
 
 <!-- SECTORIAL -->
 <section id="viewSector">
+<div class="tab-heading"><h1>Sectorial Stock Selection</h1><p>Live sector-by-sector F&O scan with gap/current movement, OI enrichment, price-level filters and first 5m/15m candle conditions.</p></div>
 <div class="controls">
 <div><label>Quick sector</label><select id="sector"></select></div>
 <div><label>Stock sort</label><select id="stockSort">
@@ -423,6 +500,7 @@ async function installPwaApp(){
 
 <!-- BREADTH -->
 <section id="viewBreadth" class="hidden">
+<div class="tab-heading"><h1>Market Breadth</h1><p>Compare advances and declines for the F&O or Nifty 50 universe to understand whether market participation is broad or weak.</p></div>
 <div class="actions"><button id="exportBreadthExcel" class="btn">Export Excel</button></div>
 <div class="controls">
 <div><label>Breadth universe</label><select id="breadthUniverse"><option value="fo">All F&O</option><option value="nifty50">Nifty 50</option></select></div>
@@ -437,6 +515,7 @@ async function installPwaApp(){
 
 <!-- PREMARKET -->
 <section id="viewPre" class="hidden">
+<div class="tab-heading"><h1>NSE Pre-Market Selection</h1><p>Combines NSE pre-open Value ranking with Stock-Futures Volume ranking, then enriches the common stocks with live movement, OI and candle conditions.</p></div>
 <div class="controls">
 <div><label>Saved date</label><select id="preDate"></select></div>
 <div><label>Sort</label><select id="preSort">
@@ -488,7 +567,8 @@ async function installPwaApp(){
 </section>
 
 <!-- OI -->
-<section id="viewOI" class="hidden"><div class="actions"><button id="exportOIExcel" class="btn">Export Excel</button></div>
+<section id="viewOI" class="hidden">
+<div class="tab-heading"><h1>Futures OI</h1><p>Fast live futures open-interest view for the full F&O universe or a selected sector.</p></div><div class="actions"><button id="exportOIExcel" class="btn">Export Excel</button></div>
 <div class="controls">
 <div><label>OI universe</label><select id="oiSector"><option value="All F&O">All F&O stocks</option></select></div>
 <div><label>OI sort</label><select id="oiSort"><option value="pct_desc">OI % high → low</option><option value="pct_asc">OI % low → high</option><option value="chg_desc">OI change high → low</option><option value="chg_asc">OI change low → high</option><option value="symbol">Symbol A → Z</option></select></div>
@@ -504,6 +584,7 @@ function isVisible(id){const el=$(id);return !!el && !el.classList.contains('hid
 let currentRows=[],summaryRows=[],oiData=[],preData=null,oiSpurtData=[],oiSpurtTimer=null,topMoversTimer=null,tmLastData=null,timer=null;
 let lazyLoaded={pre:false,oi:false,ois:false,prev:false,tm:false,breadth:false,impact:false};
 let impactData=null,tm0922Data=null,tmTop5Data=null,marketChartData=null,marketChartTimer=null;
+let dailyChartData=null,dailyChartTimer=null,sssData=null;let dailyZoomStart=null,dailyZoomEnd=null,dailyDrag=null;
 let lastSummaryRefresh=0,lastOiRefresh=0;
 let sectorBrowserCache={},sectorBrowserUpdatedAt=null,lastSectorCacheFetch=0;
 let tmBrowserRows=[],tmUniverseMap={},tmBrowserUpdatedAt=null,tmDetailMap=new Map(),lastTmCacheFetch=0;
@@ -511,7 +592,7 @@ function pct(v){return v==null||Number.isNaN(Number(v))?'NA':`${Number(v)>0?'+':
 function num(v,d=0){return v==null||Number.isNaN(Number(v))?'NA':Number(v).toLocaleString(undefined,{maximumFractionDigits:d})}
 function cls(v){return v==null?'muted':Number(v)>0?'pos':Number(v)<0?'neg':''}
 function tv(s){return `https://www.tradingview.com/chart/?symbol=NSE%3A${encodeURIComponent(s)}`}
-function show(view,button){['viewSector','viewBreadth','viewPre','viewOI','viewOISpurt','viewPrevData','viewTopMovers','viewImpact','viewCharts'].forEach(x=>$(x).classList.add('hidden'));view.classList.remove('hidden');document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));button.classList.add('active')}
+function show(view,button){['viewSector','viewBreadth','viewPre','viewOI','viewOISpurt','viewPrevData','viewTopMovers','viewImpact','viewCharts','viewDailyChart','viewSectorStockSummary'].forEach(x=>$(x).classList.add('hidden'));view.classList.remove('hidden');document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));button.classList.add('active')}
 function levelText(r){return [['PDH',r.above_pdh],['PDO',r.above_pdo],['PDC',r.above_pdc],['PDL',r.above_pdl]].map(([n,a])=>`<span class="${a?'pos':'neg'}">${n}${a?'↑':'↓'}</span>`).join(' ')}
 
 function applySectorFromLocalCache(){
@@ -2013,6 +2094,65 @@ async function loadMarketCharts(){
  const date=$('chartDate')?.value||'';const r=await fetch(`/api/market-charts/5m${date?'?trade_date='+encodeURIComponent(date):''}`,{cache:'no-store'});if(!r.ok){$('chartStatus').textContent=`Chart load failed (${r.status})`;return}marketChartData=await r.json();chartPopulateSeries();drawMarketChart();const selected=$('chartSeries').value,ser=marketChartData.series?.[selected];$('chartStatus').textContent=`${marketChartData.updated_at?'Updated '+new Date(marketChartData.updated_at).toLocaleTimeString():'Background chart cache is loading'} • ${ser?.basis||''}`;
 }
 function restartMarketChartTimer(){if(marketChartTimer)clearInterval(marketChartTimer);marketChartTimer=setInterval(()=>{if(isVisible('viewCharts'))loadMarketCharts().catch(()=>{})},5000)}
+
+// ---------------------------------------------------------------------------
+// V28 Live Daily Chart
+// ---------------------------------------------------------------------------
+async function dailyChartLoadIndexes(){
+ const r=await fetch('/api/daily-index-chart/indexes',{cache:'no-store'});if(!r.ok)throw new Error(`Daily indexes ${r.status}`);const d=await r.json(),el=$('dailyIndexSelect'),old=el.value;el.innerHTML='';for(const n of d.indexes||[]){const o=document.createElement('option');o.value=n;o.textContent=n;el.appendChild(o)}if(old&&[...el.options].some(o=>o.value===old))el.value=old;else if([...el.options].some(o=>o.value==='Nifty 50'))el.value='Nifty 50';
+}
+function dailyLevelEnabled(l){
+ const c=String(l.code||'');
+ if(c==='PDH'||c==='PDL')return $('dailyLvlPrev')?.checked!==false;
+ if(c.startsWith('D1'))return $('dailyLvlD1')?.checked!==false;
+ if(c.startsWith('D2'))return $('dailyLvlD2')?.checked!==false;
+ if(c==='PWH'||c==='PWL')return $('dailyLvlWeek')?.checked!==false;
+ if(c==='PMH'||c==='PML')return $('dailyLvlMonth')?.checked!==false;
+ return true;
+}
+function drawDailyChart(){
+ const c=$('dailyChartCanvas');if(!c||!dailyChartData)return;
+ const all=dailyChartData.candles||[];let candles=all.filter(r=>(!dailyZoomStart||r.date>=dailyZoomStart)&&(!dailyZoomEnd||r.date<=dailyZoomEnd));if(!candles.length)candles=all;
+ const levels=(dailyChartData.levels||[]).filter(dailyLevelEnabled),ctx=c.getContext('2d'),rect=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;c.width=Math.max(1050,Math.floor(rect.width*dpr));c.height=Math.floor(720*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);const W=rect.width,H=720,p={l:78,r:170,t:35,b:58};ctx.clearRect(0,0,W,H);ctx.fillStyle='#0c1726';ctx.fillRect(0,0,W,H);
+ // When zoomed, scale to selected candles first so distant monthly/weekly levels do not compress the selected price area.
+ const candleVals=candles.flatMap(x=>[x.high,x.low]).filter(Number.isFinite);const levelVals=levels.map(x=>x.value).filter(Number.isFinite);let vals=dailyZoomStart?candleVals:[...candleVals,...levelVals];if(!vals.length){ctx.fillStyle='#b7c4d6';ctx.font='16px sans-serif';ctx.fillText('Daily chart data is loading…',70,85);return}let min=Math.min(...vals),max=Math.max(...vals);if(min===max){min-=1;max+=1}const pad=(max-min)*.08;min-=pad;max+=pad;const plotW=W-p.l-p.r,plotH=H-p.t-p.b,x=i=>p.l+(i+.5)/Math.max(1,candles.length)*plotW,y=v=>p.t+(max-v)/(max-min)*plotH;
+ ctx.strokeStyle='#2a3d53';ctx.lineWidth=1;ctx.font='11px sans-serif';for(let i=0;i<=7;i++){const yy=p.t+i*plotH/7;ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();const v=max-i*(max-min)/7;ctx.fillStyle='#aebfd2';ctx.fillText(v.toFixed(2),8,yy+4)}
+ const colors={day:'#60a5fa',week:'#a78bfa',month:'#f59e0b'},showText=$('dailyShowLevelText')?.checked!==false;levels.forEach(l=>{if(!Number.isFinite(l.value))return;const yy=y(l.value);if(yy<p.t||yy>H-p.b)return;const color=colors[l.group]||'#60a5fa';ctx.strokeStyle=color;ctx.lineWidth=1;ctx.setLineDash(l.group==='day'?[4,4]:[7,4]);ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();ctx.setLineDash([]);if(showText){ctx.fillStyle=color;ctx.font='11px sans-serif';ctx.fillText(`${l.label} ${Number(l.value).toFixed(2)}`,W-p.r+6,yy+4)}});
+ const body=Math.max(5,Math.min(18,plotW/Math.max(1,candles.length)*.58));candles.forEach((r,i)=>{const xx=x(i),up=r.close>=r.open,col=up?'#22c55e':'#ef4444';ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=r.live?2.2:1.2;ctx.beginPath();ctx.moveTo(xx,y(r.high));ctx.lineTo(xx,y(r.low));ctx.stroke();const top=Math.min(y(r.open),y(r.close)),height=Math.max(2,Math.abs(y(r.close)-y(r.open)));ctx.globalAlpha=r.live?1:.9;ctx.fillRect(xx-body/2,top,body,height);ctx.globalAlpha=1;if(r.live){ctx.strokeStyle='#f8fafc';ctx.lineWidth=1;ctx.strokeRect(xx-body/2-1,top-1,body+2,height+2)}});
+ ctx.fillStyle='#aebfd2';ctx.font='11px sans-serif';const step=Math.max(1,Math.ceil(candles.length/9));for(let i=0;i<candles.length;i+=step){const d=new Date(candles[i].date+'T00:00:00');ctx.fillText(`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`,x(i)-14,H-20)}
+ c._dailyGeom={candles,x,y,W,H,p};$('dailyChartTitle').textContent=`${dailyChartData.name} — Daily TF Live${dailyZoomStart?` • Zoom ${dailyZoomStart} → ${dailyZoomEnd}`:''}`;
+}
+function dailyChartHover(ev){const c=$('dailyChartCanvas'),tip=$('dailyChartTooltip'),g=c?c._dailyGeom:null;if(!g||!g.candles.length||dailyDrag)return;const r=c.getBoundingClientRect(),mx=ev.clientX-r.left;let best=0,dist=1e9;g.candles.forEach((_,i)=>{const d=Math.abs(g.x(i)-mx);if(d<dist){dist=d;best=i}});const x=g.candles[best];tip.innerHTML=`<b>${x.date}${x.live?' • LIVE':''}</b><br>O ${x.open.toFixed(2)} &nbsp; H ${x.high.toFixed(2)}<br>L ${x.low.toFixed(2)} &nbsp; C ${x.close.toFixed(2)}`;tip.style.display='block';tip.style.left=`${Math.min(r.width-190,Math.max(5,mx+12))}px`;tip.style.top='50px'}
+function dailySelectionBox(x1,x2){const box=$('dailyChartSelection'),c=$('dailyChartCanvas');if(!box||!c)return;const a=Math.max(0,Math.min(x1,x2)),b=Math.min(c.getBoundingClientRect().width,Math.max(x1,x2));box.style.display='block';box.style.left=`${a}px`;box.style.width=`${Math.max(1,b-a)}px`;box.style.top='10px';box.style.bottom='10px'}
+function dailyPointerDown(ev){if(!$('dailyZoomTool')?.checked)return;const c=$('dailyChartCanvas'),g=c?c._dailyGeom:null;if(!g)return;const r=c.getBoundingClientRect(),x=ev.clientX-r.left;dailyDrag={start:x,current:x};$('dailyChartTooltip').style.display='none';dailySelectionBox(x,x);try{c.setPointerCapture(ev.pointerId)}catch(e){};ev.preventDefault()}
+function dailyPointerMove(ev){if(dailyDrag){const c=$('dailyChartCanvas'),r=c.getBoundingClientRect();dailyDrag.current=ev.clientX-r.left;dailySelectionBox(dailyDrag.start,dailyDrag.current);ev.preventDefault();return}dailyChartHover(ev)}
+function dailyPointerUp(ev){if(!dailyDrag)return;const c=$('dailyChartCanvas'),g=c?c._dailyGeom:null,box=$('dailyChartSelection');if(box)box.style.display='none';if(!g){dailyDrag=null;return}const a=Math.min(dailyDrag.start,dailyDrag.current),b=Math.max(dailyDrag.start,dailyDrag.current);dailyDrag=null;if(b-a<25)return;let i1=0,i2=g.candles.length-1,bd=1e9;g.candles.forEach((_,i)=>{const d=Math.abs(g.x(i)-a);if(d<bd){bd=d;i1=i}});bd=1e9;g.candles.forEach((_,i)=>{const d=Math.abs(g.x(i)-b);if(d<bd){bd=d;i2=i}});if(i2<i1)[i1,i2]=[i2,i1];if(i2-i1<1)return;dailyZoomStart=g.candles[i1].date;dailyZoomEnd=g.candles[i2].date;drawDailyChart();$('dailyChartStatus').textContent=`Zoomed to ${dailyZoomStart} → ${dailyZoomEnd}. Press Reset Zoom to return to full chart.`}
+function dailyResetZoom(){dailyZoomStart=null;dailyZoomEnd=null;drawDailyChart()}
+async function loadDailyChart(force=false){const name=$('dailyIndexSelect').value;if(!name)return;$('dailyChartStatus').textContent=`Loading ${name} daily chart…`;const r=await fetch(`/api/daily-index-chart?name=${encodeURIComponent(name)}&force=${force?'true':'false'}`,{cache:'no-store'});if(!r.ok){$('dailyChartStatus').textContent=`Daily chart failed (${r.status})`;return}dailyChartData=await r.json();dailyZoomStart=null;dailyZoomEnd=null;drawDailyChart();$('dailyChartStatus').textContent=`${dailyChartData.name} • ${dailyChartData.basis} • Updated ${new Date(dailyChartData.updated_at).toLocaleTimeString()}`}
+function restartDailyChartTimer(){if(dailyChartTimer)clearInterval(dailyChartTimer);const sec=Number($('dailyChartRefresh').value||30);dailyChartTimer=setInterval(()=>{if(isVisible('viewDailyChart'))loadDailyChart(false).catch(()=>{})},sec*1000)}
+
+// ---------------------------------------------------------------------------
+// V29 Sector & Stock Summary
+// ---------------------------------------------------------------------------
+async function sssLoadSettings(){const r=await fetch('/api/sector-stock-summary/settings',{cache:'no-store'});if(r.ok){const d=await r.json();$('sssKeep').value=d.keep_sessions||14}}
+async function sssSaveSettings(){const n=Math.max(1,Math.min(60,Number($('sssKeep').value||14)));const r=await fetch(`/api/sector-stock-summary/settings?keep_sessions=${n}`,{method:'POST'});if(!r.ok){$('sssStatus').textContent=`Setting save failed (${r.status})`;return}await sssLoadDates();$('sssStatus').textContent=`History retention saved: ${n} sessions.`}
+async function sssLoadDates(){const r=await fetch('/api/sector-stock-summary/dates',{cache:'no-store'});if(!r.ok)return;const d=await r.json(),dates=(d.dates||[]).map(x=>x.trade_date).sort(),start=$('sssStart'),end=$('sssEnd'),oldS=start.value,oldE=end.value;start.innerHTML='';end.innerHTML='';for(const dt of dates){for(const el of [start,end]){const o=document.createElement('option');o.value=dt;o.textContent=dt;el.appendChild(o)}}if(oldS&&dates.includes(oldS))start.value=oldS;else if(dates.length)start.value=dates[0];if(oldE&&dates.includes(oldE))end.value=oldE;else if(dates.length)end.value=dates[dates.length-1]}
+function sssNum(v){return v==null||Number.isNaN(Number(v))?'—':`${Number(v).toFixed(2)}%`}
+function renderSss(){if(!sssData)return;const rows=sssData.rows||[],sec=sssData.sector_summary||[],stocks=sssData.stock_summary||[],dates=sssData.selected_dates||[];$('sssKpis').innerHTML=`<div class="summary-kpi"><span>Date range</span><b>${sssData.start_date||'—'} → ${sssData.end_date||'—'}</b></div><div class="summary-kpi"><span>Trading sessions</span><b>${dates.length}</b></div><div class="summary-kpi"><span>Sectors</span><b>${sec.length}</b></div><div class="summary-kpi"><span>Unique stocks</span><b>${new Set(rows.map(r=>r.symbol)).size}</b></div>`;
+ $('sssInsights').innerHTML=`<b>Range observations</b>${(sssData.observations||[]).length?'<ul>'+sssData.observations.map(x=>`<li>${x}</li>`).join('')+'</ul>':'<div class="muted">No observations yet — use Backfill / Repair Historical Data.</div>'}`;
+ const sb=$('sssSectorRows');sb.innerHTML=sec.length?'':'<tr><td colspan="7" class="muted">No sector summary for this range.</td></tr>';sec.forEach(r=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${r.sector}</td><td>${r.sessions}</td><td>${r.stocks}</td><td class="${cls(r.latest_sector_move_pct)}">${sssNum(r.latest_sector_move_pct)}</td><td class="${cls(r.avg_sector_move_pct)}">${sssNum(r.avg_sector_move_pct)}</td><td class="${cls(r.avg_stock_move_pct)}">${sssNum(r.avg_stock_move_pct)}</td><td class="${cls(r.avg_oi_change_pct)}">${sssNum(r.avg_oi_change_pct)}</td>`;sb.appendChild(tr)});
+ const stb=$('sssStockRows');stb.innerHTML=stocks.length?'':'<tr><td colspan="7" class="muted">No stock summary for this range.</td></tr>';stocks.forEach(r=>{const tr=document.createElement('tr');tr.className='click';tr.innerHTML=`<td>${r.symbol}</td><td>${r.sector}</td><td>${r.sessions}</td><td class="${cls(r.avg_move_pct)}">${sssNum(r.avg_move_pct)}</td><td class="${cls(r.avg_oi_change_pct)}">${sssNum(r.avg_oi_change_pct)}</td><td class="${cls(r.avg_rs_pct)}">${sssNum(r.avg_rs_pct)}</td><td><span class="pos">${r.positive_sessions}</span> / <span class="neg">${r.negative_sessions}</span></td>`;tr.onclick=()=>window.open(tv(r.symbol),'_blank');stb.appendChild(tr)});
+ // Grouped matrix: one compact collapsible section per sector. Rows are stocks; columns are dates.
+ const grouped=$('sssGrouped');grouped.innerHTML='';const secMap={};rows.forEach(r=>{(secMap[r.sector]??=[]).push(r)});const secOrder=Object.keys(secMap).sort((a,b)=>{const A=sec.find(x=>x.sector===a),B=sec.find(x=>x.sector===b);return (B?.avg_sector_move_pct??-1e9)-(A?.avg_sector_move_pct??-1e9)});
+ if(!secOrder.length){grouped.innerHTML='<div class="muted">No daily/historical records for the selected range.</div>'}
+ secOrder.forEach((sectorName,si)=>{const groupRows=secMap[sectorName],summary=sec.find(x=>x.sector===sectorName)||{},symbols=[...new Set(groupRows.map(x=>x.symbol))].sort();const byKey=new Map(groupRows.map(x=>[`${x.symbol}|${x.date}`,x]));const sectorByDate={};groupRows.forEach(x=>{if(x.sector_move_pct!=null)sectorByDate[x.date]=x.sector_move_pct});const d=document.createElement('details');d.className='sector-group';if(si===0)d.open=true;const sum=document.createElement('summary');sum.innerHTML=`<span>${sectorName}</span><span class="sector-head-metrics"><span class="metric-pill">Latest ${sssNum(summary.latest_sector_move_pct)}</span><span class="metric-pill">Range Avg ${sssNum(summary.avg_sector_move_pct)}</span><span class="metric-pill">${summary.sessions||0} days</span><span class="metric-pill">${symbols.length} stocks</span></span>`;d.appendChild(sum);const wrap=document.createElement('div');wrap.className='matrix-wrap';const t=document.createElement('table');t.className='history-matrix';let head='<thead><tr><th>Stock</th><th>Avg Move</th><th>Avg OI</th><th>Avg RS</th>'+dates.map(x=>`<th>${x.slice(5)}</th>`).join('')+'</tr></thead><tbody>';head+=`<tr class="sector-row"><td>SECTOR MOVE</td><td class="${cls(summary.avg_sector_move_pct)}">${sssNum(summary.avg_sector_move_pct)}</td><td>—</td><td>—</td>${dates.map(dt=>`<td class="${cls(sectorByDate[dt])}">${sssNum(sectorByDate[dt])}</td>`).join('')}</tr>`;
+ symbols.forEach(sym=>{const agg=stocks.find(x=>x.symbol===sym&&x.sector===sectorName)||{};head+=`<tr class="click" data-sym="${sym}"><td><b>${sym}</b></td><td class="${cls(agg.avg_move_pct)}">${sssNum(agg.avg_move_pct)}</td><td class="${cls(agg.avg_oi_change_pct)}">${sssNum(agg.avg_oi_change_pct)}</td><td class="${cls(agg.avg_rs_pct)}">${sssNum(agg.avg_rs_pct)}</td>`;dates.forEach(dt=>{const r=byKey.get(`${sym}|${dt}`);if(!r){head+='<td>—</td>';return}head+=`<td class="matrix-cell"><b class="${cls(r.stock_move_pct)}">Move ${sssNum(r.stock_move_pct)}</b><small>OI ${sssNum(r.oi_change_pct)}</small><small class="${cls(r.stock_rs_pct)}">RS ${sssNum(r.stock_rs_pct)}</small></td>`});head+='</tr>'});head+='</tbody>';t.innerHTML=head;wrap.appendChild(t);d.appendChild(wrap);grouped.appendChild(d);d.querySelectorAll('tr[data-sym]').forEach(tr=>tr.onclick=()=>window.open(tv(tr.dataset.sym),'_blank'))});
+ $('sssStatus').textContent=`Showing ${dates.length} session(s), ${rows.length} stock-date records and ${sec.length} sectors. Daily moves and period averages are on the same page.`}
+async function sssLoad(){const p=new URLSearchParams();if($('sssStart').value)p.set('start_date',$('sssStart').value);if($('sssEnd').value)p.set('end_date',$('sssEnd').value);if($('sssSector').value&&$('sssSector').value!=='All Sectors')p.set('sector',$('sssSector').value);const r=await fetch(`/api/sector-stock-summary?${p}`,{cache:'no-store'});if(!r.ok){$('sssStatus').textContent=`Summary load failed (${r.status})`;return}sssData=await r.json();renderSss()}
+async function sssBackfill(){ $('sssStatus').textContent='Backfilling saved EOD OI history and repairing missing historical stock moves…';const r=await fetch('/api/sector-stock-summary/backfill?repair_prices=true',{method:'POST'});if(!r.ok){$('sssStatus').textContent=`Backfill failed (${r.status})`;return}const d=await r.json();await sssLoadDates();await sssLoad();$('sssStatus').textContent=`Backfill complete: ${(d.built_dates||[]).length} saved sessions prepared.`}
+async function sssSaveToday(){const d=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});$('sssStatus').textContent=`Saving/rebuilding ${d}…`;const r=await fetch(`/api/sector-stock-summary/save/${encodeURIComponent(d)}`,{method:'POST'});if(!r.ok){const e=await r.json().catch(()=>({}));$('sssStatus').textContent=e.detail||`Save failed (${r.status})`;return}await sssLoadDates();await sssLoad()}
+function sssExport(){const p=new URLSearchParams();if($('sssStart').value)p.set('start_date',$('sssStart').value);if($('sssEnd').value)p.set('end_date',$('sssEnd').value);if($('sssSector').value&&$('sssSector').value!=='All Sectors')p.set('sector',$('sssSector').value);window.location.href=`/api/sector-stock-summary/export.xlsx?${p}`}
+
 async function init(){
  try{
    const sectorsResp=await fetch('/api/sectors',{cache:'no-store'});
@@ -2091,6 +2231,26 @@ async function init(){
      lazyLoaded.prev=true;
      await loadPreviousDataDates();
    };
+   if($('tabDailyChart')) $('tabDailyChart').onclick=async()=>{show($('viewDailyChart'),$('tabDailyChart'));if(!$('dailyIndexSelect').options.length)await dailyChartLoadIndexes();await loadDailyChart(false);restartDailyChartTimer()};
+   if($('dailyIndexSelect')) $('dailyIndexSelect').onchange=()=>loadDailyChart(false);
+   if($('dailyChartRefresh')) $('dailyChartRefresh').onchange=restartDailyChartTimer;
+   if($('dailyChartRefreshNow')) $('dailyChartRefreshNow').onclick=()=>loadDailyChart(true);
+   if($('dailyChartCanvas')) {const dc=$('dailyChartCanvas');dc.onpointerdown=dailyPointerDown;dc.onpointermove=dailyPointerMove;dc.onpointerup=dailyPointerUp;dc.onpointercancel=dailyPointerUp;dc.onmouseleave=()=>{if(!dailyDrag)$('dailyChartTooltip').style.display='none'}};
+   if($('dailyChartResetZoom')) $('dailyChartResetZoom').onclick=dailyResetZoom;
+   if($('dailyZoomTool')) $('dailyZoomTool').onchange=()=>{$('dailyChartShell').classList.toggle('zoom-enabled',$('dailyZoomTool').checked)};
+   for(const id of ['dailyLvlPrev','dailyLvlD1','dailyLvlD2','dailyLvlWeek','dailyLvlMonth','dailyShowLevelText']){if($(id))$(id).onchange=drawDailyChart}
+
+   if($('tabSectorStockSummary')) $('tabSectorStockSummary').onclick=async()=>{show($('viewSectorStockSummary'),$('tabSectorStockSummary'));await Promise.all([sssLoadSettings(),sssLoadDates()]);if($('sssSector').options.length<=1){for(const s of sectorData.sectors||[]){const o=document.createElement('option');o.value=s;o.textContent=s;$('sssSector').appendChild(o)}}await sssLoad()};
+   if($('sssSaveSettings')) $('sssSaveSettings').onclick=sssSaveSettings;
+   if($('sssExpandAll')) $('sssExpandAll').onclick=()=>document.querySelectorAll('#sssGrouped details').forEach(x=>x.open=true);
+   if($('sssCollapseAll')) $('sssCollapseAll').onclick=()=>document.querySelectorAll('#sssGrouped details').forEach(x=>x.open=false);
+   if($('sssLoad')) $('sssLoad').onclick=sssLoad;
+   if($('sssBackfill')) $('sssBackfill').onclick=sssBackfill;
+   if($('sssSaveToday')) $('sssSaveToday').onclick=sssSaveToday;
+   if($('sssExport')) $('sssExport').onclick=sssExport;
+   if($('sssSector')) $('sssSector').onchange=sssLoad;
+   if($('sssStart')) $('sssStart').onchange=sssLoad;
+   if($('sssEnd')) $('sssEnd').onchange=sssLoad;
    if($('tabImpact')) $('tabImpact').onclick=async()=>{show($('viewImpact'),$('tabImpact'));if(!lazyLoaded.impact){lazyLoaded.impact=true;await Promise.all([impactLoadSettings(),impactLoadDates()])}await impactRun(false)};
    if($('tabCharts')) $('tabCharts').onclick=async()=>{show($('viewCharts'),$('tabCharts'));await loadMarketChartDates();await loadMarketCharts();restartMarketChartTimer()};
    if($('tabTopMovers')) $('tabTopMovers').onclick=async()=>{
