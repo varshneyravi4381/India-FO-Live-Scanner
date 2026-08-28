@@ -5024,6 +5024,659 @@ async def _market_chart_history_scheduler():
 async def _start_market_chart_history_scheduler():
     asyncio.create_task(_market_chart_history_scheduler())
 
+
+# ============================================================================
+# V29 — LIVE DAILY INDEX CHART + SECTOR/STOCK EOD SUMMARY
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# LIVE DAILY INDEX CHART
+# ---------------------------------------------------------------------------
+# Only the selected index is fetched. This avoids downloading every index when
+# the tab opens and keeps the e2-micro cloud VM responsive.
+DAILY_INDEX_CACHE_SECONDS = 45
+_daily_index_cache_lock = threading.Lock()
+_daily_index_cache = {}
+
+# Actual Yahoo symbols are used where they are known/stable. If Yahoo does not
+# return an index, the same function falls back to an equal-weight basket built
+# from the scanner's constituent list and labels the basis clearly in the UI.
+DAILY_INDEX_TICKERS = {
+    'Nifty 50': '^NSEI',
+    'Nifty Bank': '^NSEBANK',
+    'Nifty Auto': '^CNXAUTO',
+    'Nifty Energy': '^CNXENERGY',
+    'Nifty Fin Services': '^CNXFINANCE',
+    'Nifty FMCG': '^CNXFMCG',
+    'Nifty IT': '^CNXIT',
+    'Nifty Media': '^CNXMEDIA',
+    'Nifty Metal': '^CNXMETAL',
+    'Nifty Pharma': '^CNXPHARMA',
+    'Nifty PSU Bank': '^CNXPSUBANK',
+    'Nifty Realty': '^CNXREALTY',
+}
+
+
+def _daily_index_universes():
+    n50 = set(_sanitize_stock_symbols(NIFTY50))
+    n100 = set(_sanitize_stock_symbols(NIFTY100))
+    return {
+        'Nifty 50': list(n50),
+        'Nifty Next 50': sorted(n100 - n50),
+        'Nifty 100': _sanitize_stock_symbols(NIFTY100),
+        'Nifty 500': _sanitize_stock_symbols(NIFTY500),
+        **{k: _sanitize_stock_symbols(v) for k, v in SECTORS.items()},
+    }
+
+
+def _daily_index_names():
+    preferred = ['Nifty 50', 'Nifty Bank', 'Nifty Fin Services', 'Nifty IT']
+    all_names = list(_daily_index_universes().keys())
+    ordered = []
+    for x in preferred + all_names:
+        if x in all_names and x not in ordered:
+            ordered.append(x)
+    return ordered
+
+
+def _weekday_short(value):
+    try:
+        return pd.Timestamp(value).strftime('%a')
+    except Exception:
+        return ''
+
+
+def _daily_index_levels(frame, current_date):
+    f = _daily_rows(frame)
+    if f is None or f.empty:
+        return []
+    completed = f[f['_date'] < current_date].sort_values('_date').copy()
+    if completed.empty:
+        return []
+
+    levels = []
+    def add(code, value, label=None, group='day'):
+        try:
+            value = float(value)
+        except Exception:
+            return
+        levels.append({'code': code, 'label': label or code, 'value': value, 'group': group})
+
+    # Previous completed session = PDH/PDL. D1 is one session before that,
+    # D2 two sessions before that. Day name is included in brackets.
+    prev = completed.iloc[-1]
+    pday = _weekday_short(prev['_date'])
+    add('PDH', prev['High'], f'PDH ({pday})')
+    add('PDL', prev['Low'], f'PDL ({pday})')
+
+    for ago in (1, 2):
+        if len(completed) >= ago + 1:
+            r = completed.iloc[-(ago + 1)]
+            dn = _weekday_short(r['_date'])
+            add(f'D{ago}H', r['High'], f'D{ago}H ({dn})')
+            add(f'D{ago}L', r['Low'], f'D{ago}L ({dn})')
+
+    # Previous completed ISO week.
+    temp = completed.copy()
+    temp['_week'] = [tuple(pd.Timestamp(d).isocalendar()[:2]) for d in temp['_date']]
+    cur_week = tuple(pd.Timestamp(current_date).isocalendar()[:2])
+    prev_weeks = []
+    for wk, g in temp.groupby('_week', sort=True):
+        if wk < cur_week:
+            prev_weeks.append((wk, g.sort_values('_date')))
+    if prev_weeks:
+        _, g = prev_weeks[-1]
+        add('PWH', g['High'].max(), 'PWH', 'week')
+        add('PWL', g['Low'].min(), 'PWL', 'week')
+
+    # Previous completed calendar month.
+    temp['_month'] = [pd.Timestamp(d).strftime('%Y-%m') for d in temp['_date']]
+    cur_month = pd.Timestamp(current_date).strftime('%Y-%m')
+    months = []
+    for month, g in temp.groupby('_month', sort=True):
+        if month < cur_month:
+            months.append((month, g.sort_values('_date')))
+    if months:
+        month, g = months[-1]
+        month_name = pd.Timestamp(month + '-01').strftime('%b')
+        add('PMH', g['High'].max(), f'PMH ({month_name})', 'month')
+        add('PML', g['Low'].min(), f'PML ({month_name})', 'month')
+    return levels
+
+
+def _basket_daily_frame(symbols, period='6mo'):
+    clean = _sanitize_stock_symbols(symbols)
+    if not clean:
+        return pd.DataFrame()
+    data = yf.download(
+        tickers=[_sym(s) for s in clean], period=period, interval='1d',
+        group_by='ticker', auto_adjust=False, threads=True,
+        progress=False, prepost=False,
+    )
+    frames = []
+    for s in clean:
+        y = _sym(s)
+        f = _single(data, y)
+        if f.empty or not all(c in f for c in ['Open','High','Low','Close']):
+            continue
+        d = f[['Open','High','Low','Close']].copy()
+        d.columns = pd.MultiIndex.from_product([[s], d.columns])
+        frames.append(d)
+    if not frames:
+        return pd.DataFrame()
+    x = pd.concat(frames, axis=1)
+    out = pd.DataFrame(index=x.index)
+    for col in ['Open','High','Low','Close']:
+        out[col] = x.xs(col, axis=1, level=1).mean(axis=1, skipna=True)
+    return out.dropna(subset=['Close'])
+
+
+def _basket_today_ohlc(symbols):
+    clean = _sanitize_stock_symbols(symbols)
+    if not clean:
+        return None
+    data = yf.download(
+        tickers=[_sym(s) for s in clean], period='1d', interval='5m',
+        group_by='ticker', auto_adjust=False, threads=True,
+        progress=False, prepost=False,
+    )
+    rows = []
+    for s in clean:
+        f = _to_ist_frame(_single(data, _sym(s)))
+        if f.empty or 'Close' not in f:
+            continue
+        today = pd.Timestamp.now(tz='Asia/Kolkata').date()
+        f = f[f.index.date == today]
+        if f.empty:
+            continue
+        try:
+            rows.append({
+                'Open': float(f['Open'].dropna().iloc[0]) if 'Open' in f and not f['Open'].dropna().empty else float(f['Close'].dropna().iloc[0]),
+                'High': float(f['High'].dropna().max()) if 'High' in f else float(f['Close'].dropna().max()),
+                'Low': float(f['Low'].dropna().min()) if 'Low' in f else float(f['Close'].dropna().min()),
+                'Close': float(f['Close'].dropna().iloc[-1]),
+            })
+        except Exception:
+            pass
+    if not rows:
+        return None
+    return {k: sum(r[k] for r in rows) / len(rows) for k in ['Open','High','Low','Close']}
+
+
+def _actual_index_frames(ticker):
+    daily = pd.DataFrame(); today_ohlc = None
+    if not ticker:
+        return daily, today_ohlc
+    try:
+        raw_d = yf.download(
+            tickers=[ticker], period='6mo', interval='1d', group_by='ticker',
+            auto_adjust=False, threads=True, progress=False, prepost=False,
+        )
+        daily = _single(raw_d, ticker)
+        raw_i = yf.download(
+            tickers=[ticker], period='1d', interval='5m', group_by='ticker',
+            auto_adjust=False, threads=True, progress=False, prepost=False,
+        )
+        intra = _to_ist_frame(_single(raw_i, ticker))
+        today = pd.Timestamp.now(tz='Asia/Kolkata').date()
+        intra = intra[intra.index.date == today] if not intra.empty else intra
+        if not intra.empty and 'Close' in intra:
+            today_ohlc = {
+                'Open': float(intra['Open'].dropna().iloc[0]) if 'Open' in intra and not intra['Open'].dropna().empty else float(intra['Close'].dropna().iloc[0]),
+                'High': float(intra['High'].dropna().max()) if 'High' in intra else float(intra['Close'].dropna().max()),
+                'Low': float(intra['Low'].dropna().min()) if 'Low' in intra else float(intra['Close'].dropna().min()),
+                'Close': float(intra['Close'].dropna().iloc[-1]),
+            }
+    except Exception:
+        pass
+    return daily, today_ohlc
+
+
+def _build_daily_index_chart(name):
+    universes = _daily_index_universes()
+    if name not in universes:
+        raise HTTPException(404, 'Unknown index / sector index')
+    ticker = DAILY_INDEX_TICKERS.get(name)
+    daily, live = _actual_index_frames(ticker)
+    basis = 'Actual Yahoo index price'
+    if daily.empty or 'Close' not in daily:
+        daily = _basket_daily_frame(universes[name])
+        live = _basket_today_ohlc(universes[name])
+        basis = 'Equal-weight constituent basket price (index fallback)'
+
+    current_date = pd.Timestamp.now(tz='Asia/Kolkata').date()
+    levels = _daily_index_levels(daily, current_date)
+    f = _daily_rows(daily)
+    candles = []
+    if f is not None and not f.empty:
+        f = f.sort_values('_date').tail(75)
+        for _, r in f.iterrows():
+            try:
+                candles.append({
+                    'date': r['_date'].isoformat(),
+                    'open': float(r['Open']), 'high': float(r['High']),
+                    'low': float(r['Low']), 'close': float(r['Close']),
+                    'live': bool(r['_date'] == current_date),
+                })
+            except Exception:
+                pass
+
+    # Replace/append the current day's daily candle with the latest intraday OHLC.
+    if live:
+        candles = [c for c in candles if c['date'] != current_date.isoformat()]
+        candles.append({
+            'date': current_date.isoformat(),
+            'open': live['Open'], 'high': live['High'], 'low': live['Low'],
+            'close': live['Close'], 'live': True,
+        })
+    return {
+        'name': name,
+        'ticker': ticker,
+        'basis': basis,
+        'updated_at': pd.Timestamp.now(tz='Asia/Kolkata').isoformat(),
+        'candles': candles[-75:],
+        'levels': levels,
+    }
+
+
+def _get_daily_index_chart(name, force=False):
+    now = time.time()
+    with _daily_index_cache_lock:
+        item = _daily_index_cache.get(name)
+        if item and not force and now - item['ts'] < DAILY_INDEX_CACHE_SECONDS:
+            return item['value']
+    value = _build_daily_index_chart(name)
+    with _daily_index_cache_lock:
+        _daily_index_cache[name] = {'ts': time.time(), 'value': value}
+    return value
+
+
+@app.get('/api/daily-index-chart/indexes')
+def daily_index_chart_indexes():
+    return {'indexes': _daily_index_names()}
+
+
+@app.get('/api/daily-index-chart')
+def daily_index_chart(name: str = 'Nifty 50', force: bool = False):
+    return _get_daily_index_chart(name, force=force)
+
+
+# ---------------------------------------------------------------------------
+# SECTOR & STOCK SUMMARY HISTORY
+# ---------------------------------------------------------------------------
+SECTOR_STOCK_SUMMARY_DB = DATA_DIR / 'sector_stock_summary.sqlite3'
+SECTOR_STOCK_SUMMARY_DEFAULT_KEEP = 14
+
+
+def _sss_db():
+    conn = sqlite3.connect(SECTOR_STOCK_SUMMARY_DB)
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS summary_sessions (
+            trade_date TEXT PRIMARY KEY,
+            saved_at TEXT NOT NULL,
+            rows_json TEXT NOT NULL
+        )
+    ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS summary_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )
+    ''')
+    conn.execute(
+        "INSERT OR IGNORE INTO summary_settings(key,value) VALUES('keep_sessions',?)",
+        (str(SECTOR_STOCK_SUMMARY_DEFAULT_KEEP),)
+    )
+    conn.commit()
+    return conn
+
+
+def _sss_keep_sessions():
+    conn = _sss_db()
+    row = conn.execute("SELECT value FROM summary_settings WHERE key='keep_sessions'").fetchone()
+    conn.close()
+    try: value = int(row[0]) if row else SECTOR_STOCK_SUMMARY_DEFAULT_KEEP
+    except Exception: value = SECTOR_STOCK_SUMMARY_DEFAULT_KEEP
+    return max(1, min(60, value))
+
+
+def _sss_set_keep_sessions(value):
+    value = max(1, min(60, int(value)))
+    conn = _sss_db()
+    conn.execute(
+        "INSERT INTO summary_settings(key,value) VALUES('keep_sessions',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (str(value),)
+    )
+    conn.commit(); conn.close(); _sss_prune()
+    return value
+
+
+def _sss_prune():
+    conn = _sss_db()
+    dates = [r[0] for r in conn.execute('SELECT trade_date FROM summary_sessions ORDER BY trade_date DESC').fetchall()]
+    for d in dates[_sss_keep_sessions():]:
+        conn.execute('DELETE FROM summary_sessions WHERE trade_date=?', (d,))
+    conn.commit(); conn.close()
+
+
+def _sss_dates():
+    conn = _sss_db()
+    rows = conn.execute(
+        'SELECT trade_date,saved_at FROM summary_sessions ORDER BY trade_date DESC LIMIT ?',
+        (_sss_keep_sessions(),)
+    ).fetchall()
+    conn.close()
+    return [{'trade_date':r[0], 'saved_at':r[1]} for r in rows]
+
+
+def _sss_load(trade_date):
+    conn = _sss_db()
+    row = conn.execute('SELECT saved_at,rows_json FROM summary_sessions WHERE trade_date=?', (trade_date,)).fetchone()
+    conn.close()
+    if not row: return None
+    return {'trade_date': trade_date, 'saved_at': row[0], 'rows': json.loads(row[1])}
+
+
+def _sss_build_rows(trade_date, move_overrides=None):
+    snap = _ois_load(trade_date)
+    if not snap:
+        raise HTTPException(404, 'No saved OI Spurt data for this date')
+    oi_rows = snap.get('eod_rows') or []
+    if not oi_rows:
+        raise HTTPException(404, 'EOD OI Spurt data is not saved for this date yet')
+
+    move_overrides = move_overrides or {}
+    clean_rows = []
+    by_sector = {}
+    for r in oi_rows:
+        symbol = str(r.get('symbol') or '').upper().strip()
+        if not symbol: continue
+        sector = SYMBOL_TO_SECTOR.get(symbol, r.get('sector') or 'Other / Unmapped')
+        move = r.get('move_pct')
+        try: move = float(move) if move is not None else None
+        except Exception: move = None
+        # Existing saved EOD move is preferred. During a manual historical repair,
+        # Yahoo daily history fills only genuinely missing move values.
+        if move is None and symbol in move_overrides:
+            try: move = float(move_overrides[symbol])
+            except Exception: move = None
+        oi = r.get('oi_change_pct')
+        try: oi = float(oi) if oi is not None else None
+        except Exception: oi = None
+        clean_rows.append({
+            'date': trade_date,
+            'sector': sector,
+            'symbol': symbol,
+            'oi_change_pct': oi,
+            'stock_move_pct': move,
+        })
+        if move is not None:
+            by_sector.setdefault(sector, []).append(move)
+
+    sector_moves = {
+        s: (sum(vals)/len(vals) if vals else None)
+        for s, vals in by_sector.items()
+    }
+    for row in clean_rows:
+        row['sector_move_pct'] = sector_moves.get(row['sector'])
+        sm, secm = row.get('stock_move_pct'), row.get('sector_move_pct')
+        row['stock_rs_pct'] = (float(sm) - float(secm)) if sm is not None and secm is not None else None
+    clean_rows.sort(key=lambda r: (r['sector'], -(r['oi_change_pct'] if r['oi_change_pct'] is not None else -1e18), r['symbol']))
+    return clean_rows
+
+
+def _sss_save_date(trade_date, move_overrides=None):
+    rows = _sss_build_rows(trade_date, move_overrides=move_overrides)
+    now = pd.Timestamp.now(tz='Asia/Kolkata').isoformat()
+    conn = _sss_db()
+    conn.execute('''
+        INSERT INTO summary_sessions(trade_date,saved_at,rows_json)
+        VALUES(?,?,?)
+        ON CONFLICT(trade_date) DO UPDATE SET saved_at=excluded.saved_at, rows_json=excluded.rows_json
+    ''', (trade_date, now, json.dumps(rows, ensure_ascii=False)))
+    conn.commit(); conn.close(); _sss_prune()
+    return _sss_load(trade_date)
+
+
+def _sss_historical_move_overrides(dates):
+    """Return {trade_date: {symbol: move_pct}} for missing historical moves.
+
+    This is intentionally used only by the manual Backfill/Repair action. The
+    normal startup backfill stays local/cheap so the cloud VM is not burdened.
+    """
+    dates = sorted({str(d) for d in dates if d})
+    if not dates:
+        return {}
+    wanted = {}
+    symbols = set()
+    for d in dates:
+        snap = _ois_load(d)
+        for r in ((snap or {}).get('eod_rows') or []):
+            sym = str(r.get('symbol') or '').upper().strip()
+            if sym:
+                symbols.add(sym)
+    clean = sorted(_sanitize_stock_symbols(symbols))
+    if not clean:
+        return {}
+    try:
+        start = (pd.Timestamp(dates[0]) - pd.Timedelta(days=12)).strftime('%Y-%m-%d')
+        end = (pd.Timestamp(dates[-1]) + pd.Timedelta(days=3)).strftime('%Y-%m-%d')
+        data = yf.download(
+            tickers=[_sym(x) for x in clean], start=start, end=end, interval='1d',
+            group_by='ticker', auto_adjust=False, threads=True, progress=False,
+            prepost=False,
+        )
+    except Exception:
+        return {}
+    for sym in clean:
+        try:
+            f = _single(data, _sym(sym))
+            if f is None or f.empty or 'Close' not in f:
+                continue
+            x = f[['Close']].dropna().copy()
+            x['_date'] = [pd.Timestamp(i).date().isoformat() for i in x.index]
+            x = x.sort_values('_date').reset_index(drop=True)
+            by_date = {r['_date']: i for i, r in x.iterrows()}
+            for d in dates:
+                i = by_date.get(d)
+                if i is None or i <= 0:
+                    continue
+                close = float(x.iloc[i]['Close']); pdc = float(x.iloc[i-1]['Close'])
+                if pdc:
+                    wanted.setdefault(d, {})[sym] = (close - pdc) / pdc * 100.0
+        except Exception:
+            continue
+    return wanted
+
+
+def _sss_backfill(repair_prices=False):
+    # Startup uses repair_prices=False (local only). The manual repair action
+    # can additionally fetch Yahoo daily closes to fill missing stock moves.
+    keep = _sss_keep_sessions()
+    built = []
+    dates = sorted([x['trade_date'] for x in _ois_dates()], reverse=True)[:keep]
+    overrides = _sss_historical_move_overrides(dates) if repair_prices else {}
+    for d in dates:
+        try:
+            snap = _ois_load(d)
+            if snap and snap.get('eod_rows'):
+                _sss_save_date(d, move_overrides=overrides.get(d)); built.append(d)
+        except Exception:
+            pass
+    return built
+
+
+def _sss_range(start_date=None, end_date=None, sector=None):
+    sessions = _sss_dates()
+    dates = sorted([x['trade_date'] for x in sessions])
+    if not dates:
+        return {'rows':[], 'sector_summary':[], 'stock_summary':[], 'observations':[], 'available_dates':[]}
+    start_date = start_date or dates[0]
+    end_date = end_date or dates[-1]
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+    rows = []
+    for d in dates:
+        if d < start_date or d > end_date: continue
+        snap = _sss_load(d)
+        if not snap: continue
+        for r in snap['rows']:
+            if sector and sector != 'All Sectors' and r.get('sector') != sector: continue
+            item = dict(r)
+            if item.get('stock_rs_pct') is None and item.get('stock_move_pct') is not None and item.get('sector_move_pct') is not None:
+                try: item['stock_rs_pct'] = float(item['stock_move_pct']) - float(item['sector_move_pct'])
+                except Exception: item['stock_rs_pct'] = None
+            rows.append(item)
+
+    # Range-level sector aggregation.
+    sec = {}
+    stocks = {}
+    for r in rows:
+        s = r.get('sector') or 'Other / Unmapped'
+        g = sec.setdefault(s, {'sector':s,'sector_moves':{},'stock_moves':[],'oi':[],'rs':[],'positive':0,'negative':0,'rows':0,'symbols':set()})
+        g['rows'] += 1; g['symbols'].add(r.get('symbol'))
+        if r.get('sector_move_pct') is not None: g['sector_moves'][r['date']] = r['sector_move_pct']
+        if r.get('stock_move_pct') is not None:
+            g['stock_moves'].append(r['stock_move_pct'])
+            if r['stock_move_pct'] > 0: g['positive'] += 1
+            elif r['stock_move_pct'] < 0: g['negative'] += 1
+        if r.get('oi_change_pct') is not None: g['oi'].append(r['oi_change_pct'])
+        if r.get('stock_rs_pct') is not None: g['rs'].append(r['stock_rs_pct'])
+
+        sym = r.get('symbol')
+        sg = stocks.setdefault(sym, {'symbol':sym,'sector':s,'moves':[],'oi':[],'rs':[],'sessions':0,'positive':0,'negative':0})
+        sg['sessions'] += 1
+        if r.get('stock_move_pct') is not None:
+            sg['moves'].append(r['stock_move_pct'])
+            if r['stock_move_pct'] > 0: sg['positive'] += 1
+            elif r['stock_move_pct'] < 0: sg['negative'] += 1
+        if r.get('oi_change_pct') is not None: sg['oi'].append(r['oi_change_pct'])
+        if r.get('stock_rs_pct') is not None: sg['rs'].append(r['stock_rs_pct'])
+
+    sector_summary = []
+    for g in sec.values():
+        sector_summary.append({
+            'sector': g['sector'],
+            'sessions': len(g['sector_moves']),
+            'stocks': len(g['symbols']),
+            'avg_sector_move_pct': sum(g['sector_moves'].values())/len(g['sector_moves']) if g['sector_moves'] else None,
+            'avg_stock_move_pct': sum(g['stock_moves'])/len(g['stock_moves']) if g['stock_moves'] else None,
+            'avg_oi_change_pct': sum(g['oi'])/len(g['oi']) if g['oi'] else None,
+            'avg_stock_rs_pct': sum(g['rs'])/len(g['rs']) if g['rs'] else None,
+            'latest_sector_move_pct': g['sector_moves'][sorted(g['sector_moves'])[-1]] if g['sector_moves'] else None,
+            'positive_rows': g['positive'], 'negative_rows': g['negative'],
+        })
+    sector_summary.sort(key=lambda x: -(x['avg_sector_move_pct'] if x['avg_sector_move_pct'] is not None else -1e18))
+
+    stock_summary = []
+    for g in stocks.values():
+        stock_summary.append({
+            'symbol':g['symbol'],'sector':g['sector'],'sessions':g['sessions'],
+            'avg_move_pct':sum(g['moves'])/len(g['moves']) if g['moves'] else None,
+            'avg_oi_change_pct':sum(g['oi'])/len(g['oi']) if g['oi'] else None,
+            'avg_rs_pct':sum(g['rs'])/len(g['rs']) if g['rs'] else None,
+            'positive_sessions':g['positive'],'negative_sessions':g['negative'],
+        })
+    stock_summary.sort(key=lambda x: (-(x['sessions']), -(x['avg_oi_change_pct'] if x['avg_oi_change_pct'] is not None else -1e18)))
+
+    observations = []
+    if sector_summary:
+        best = sector_summary[0]; worst = sector_summary[-1]
+        if best.get('avg_sector_move_pct') is not None:
+            observations.append(f"Strongest average sector in range: {best['sector']} ({best['avg_sector_move_pct']:.2f}%).")
+        if worst.get('avg_sector_move_pct') is not None and worst['sector'] != best['sector']:
+            observations.append(f"Weakest average sector in range: {worst['sector']} ({worst['avg_sector_move_pct']:.2f}%).")
+    if stock_summary:
+        repeated = sorted(stock_summary, key=lambda x:(-x['sessions'], -(abs(x['avg_move_pct']) if x['avg_move_pct'] is not None else 0)))[:3]
+        if repeated:
+            observations.append('Most repeated OI-history stocks: ' + ', '.join(f"{x['symbol']} ({x['sessions']} sessions)" for x in repeated) + '.')
+        oi_ranked = [x for x in stock_summary if x.get('avg_oi_change_pct') is not None]
+        oi_ranked.sort(key=lambda x:-x['avg_oi_change_pct'])
+        if oi_ranked:
+            x=oi_ranked[0]; observations.append(f"Highest average OI change: {x['symbol']} ({x['avg_oi_change_pct']:.2f}%).")
+    return {
+        'start_date':start_date,'end_date':end_date,'rows':rows,
+        'sector_summary':sector_summary,'stock_summary':stock_summary,
+        'observations':observations,'available_dates':dates,
+        'selected_dates':[d for d in dates if start_date <= d <= end_date],
+    }
+
+
+async def _sss_scheduler():
+    while True:
+        try:
+            now = pd.Timestamp.now(tz='Asia/Kolkata')
+            minute = now.hour*60 + now.minute
+            if now.weekday() < 5 and minute >= 15*60+40:
+                today = now.date().isoformat()
+                if not _sss_load(today):
+                    try:
+                        snap = _ois_load(today)
+                        if not snap or not snap.get('eod_rows'):
+                            await asyncio.to_thread(_ois_save_eod_with_common)
+                        await asyncio.to_thread(_sss_save_date, today)
+                    except Exception as exc:
+                        print('[SectorStockSummary] EOD save failed:', exc)
+        except Exception:
+            pass
+        await asyncio.sleep(60)
+
+
+@app.on_event('startup')
+async def _start_sss_scheduler():
+    asyncio.create_task(_sss_scheduler())
+    # Cheap local backfill only; no external market requests.
+    threading.Thread(target=_sss_backfill, daemon=True).start()
+
+
+@app.get('/api/sector-stock-summary/settings')
+def sector_stock_summary_settings():
+    return {'keep_sessions': _sss_keep_sessions()}
+
+
+@app.post('/api/sector-stock-summary/settings')
+def sector_stock_summary_update_settings(keep_sessions: int = 14):
+    return {'keep_sessions': _sss_set_keep_sessions(keep_sessions)}
+
+
+@app.get('/api/sector-stock-summary/dates')
+def sector_stock_summary_dates():
+    return {'dates': _sss_dates()}
+
+
+@app.get('/api/sector-stock-summary')
+def sector_stock_summary(start_date: str | None = None, end_date: str | None = None, sector: str | None = None):
+    return _sss_range(start_date, end_date, sector)
+
+
+@app.post('/api/sector-stock-summary/save/{trade_date}')
+def sector_stock_summary_save(trade_date: str):
+    return _sss_save_date(trade_date)
+
+
+@app.post('/api/sector-stock-summary/backfill')
+def sector_stock_summary_backfill(repair_prices: bool = True):
+    return {'built_dates': _sss_backfill(repair_prices=repair_prices), 'dates': _sss_dates(), 'price_repair': repair_prices}
+
+
+@app.get('/api/sector-stock-summary/export.xlsx')
+def sector_stock_summary_export(start_date: str | None = None, end_date: str | None = None, sector: str | None = None):
+    data = _sss_range(start_date, end_date, sector)
+    from fastapi.responses import StreamingResponse
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        pd.DataFrame(data['rows']).to_excel(writer, sheet_name='Daily Stock Detail', index=False)
+        pd.DataFrame(data['sector_summary']).to_excel(writer, sheet_name='Sector Summary', index=False)
+        pd.DataFrame(data['stock_summary']).to_excel(writer, sheet_name='Stock Summary', index=False)
+        pd.DataFrame({'Observation': data['observations']}).to_excel(writer, sheet_name='Observations', index=False)
+    output.seek(0)
+    filename = f"Sector_Stock_Summary_{data.get('start_date') or 'NA'}_to_{data.get('end_date') or 'NA'}.xlsx"
+    return StreamingResponse(
+        output,
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+    )
+
 # ============================================================================
 # NSE PRE-MARKET SELECTION
 # ============================================================================
