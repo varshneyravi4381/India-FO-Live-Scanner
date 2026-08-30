@@ -1,0 +1,10 @@
+
+# Python runtime
+__pycache__/
+*.pyc
+
+# Runtime logs
+*.log
+
+# Local safety backups
+*.before-*
