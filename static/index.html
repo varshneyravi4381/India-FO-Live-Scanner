@@ -66,6 +66,162 @@ table{background:rgba(10,20,33,.25)}th,td{padding:9px 10px;font-size:13px;border
 @media(max-width:900px){.summary-kpis{grid-template-columns:1fr 1fr}.tab-heading h1{font-size:19px}.wrap{padding:10px}}
 @media(max-width:550px){.summary-kpis{grid-template-columns:1fr}.card h2{font-size:16px}.tab-heading{padding:12px}.tab-heading p{font-size:12px}}
 
+
+/* V28 mobile vertical scanner drawer */
+.mobile-menu-button,
+.mobile-drawer-overlay,
+.mobile-drawer-head{display:none}
+
+.top-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:0 0 14px;
+}
+
+@media(max-width:700px){
+  body.mobile-drawer-open{overflow:hidden}
+
+  .wrap{
+    padding-top:62px;
+  }
+
+  .mobile-menu-button{
+    display:flex;
+    position:fixed;
+    top:10px;
+    left:10px;
+    z-index:1002;
+    width:46px;
+    height:46px;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    border:1px solid #496684;
+    border-radius:12px;
+    background:#14263b;
+    color:#f8fafc;
+    font-size:25px;
+    line-height:1;
+    box-shadow:0 5px 18px rgba(0,0,0,.32);
+    cursor:pointer;
+  }
+
+  .mobile-drawer-overlay{
+    display:block;
+    position:fixed;
+    inset:0;
+    z-index:1000;
+    background:rgba(2,8,18,.70);
+    opacity:0;
+    visibility:hidden;
+    transition:opacity .2s ease,visibility .2s ease;
+  }
+
+  body.mobile-drawer-open .mobile-drawer-overlay{
+    opacity:1;
+    visibility:visible;
+  }
+
+  #scannerTabs.tabs{
+    position:fixed;
+    top:0;
+    left:0;
+    bottom:0;
+    z-index:1001;
+    width:min(84vw,330px);
+    height:100dvh;
+    margin:0;
+    padding:0 12px 24px;
+    display:flex;
+    flex-direction:column;
+    flex-wrap:nowrap;
+    gap:7px;
+    overflow-y:auto;
+    overflow-x:hidden;
+    background:linear-gradient(180deg,#0d1b2d 0%,#0a1524 100%);
+    border-right:1px solid #39516e;
+    box-shadow:14px 0 35px rgba(0,0,0,.42);
+    transform:translateX(-105%);
+    transition:transform .22s ease;
+    scrollbar-width:thin;
+  }
+
+  body.mobile-drawer-open #scannerTabs.tabs{
+    transform:translateX(0);
+  }
+
+  #scannerTabs .mobile-drawer-head{
+    display:flex;
+    position:sticky;
+    top:0;
+    z-index:2;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin:0 -12px 6px;
+    padding:16px 12px;
+    background:#102138;
+    border-bottom:1px solid #334d69;
+  }
+
+  .mobile-drawer-head strong{
+    display:block;
+    color:#f8fafc;
+    font-size:16px;
+  }
+
+  .mobile-drawer-head small{
+    display:block;
+    margin-top:2px;
+    color:#9fb3ca;
+    font-size:11px;
+  }
+
+  #mobileDrawerClose{
+    width:40px;
+    height:40px;
+    min-height:40px;
+    padding:0;
+    border:1px solid #46617e;
+    border-radius:10px;
+    background:#172b43;
+    color:#fff;
+    font-size:27px;
+    line-height:1;
+    cursor:pointer;
+  }
+
+  #scannerTabs.tabs > button:not(#mobileDrawerClose){
+    flex:0 0 auto;
+    width:100%;
+    min-height:48px;
+    padding:11px 13px;
+    text-align:left;
+    white-space:normal;
+    line-height:1.25;
+    border-radius:10px;
+    background:#13243a;
+    border:1px solid #314b68;
+    color:#e6eef8;
+  }
+
+  #scannerTabs.tabs > button.active{
+    background:#244b76;
+    border-color:#7ab7ff;
+    color:#fff;
+  }
+
+  .top-actions{
+    gap:7px;
+    margin-bottom:12px;
+  }
+
+  .top-actions .btn{
+    min-height:44px;
+  }
+}
+
 </style>
 
 <!-- OI SPURT SELECTION -->
@@ -450,12 +606,35 @@ async function installPwaApp(){
 <div class="card"><h2>Daily + Historical Sector / Stock Matrix</h2><div class="foot">Each sector is collapsible. Every date cell shows Stock Move %, EOD OI Change %, and RS vs Sector. RS = Stock Move % − Sector Move %. Positive RS means the stock outperformed its own sector that day.</div><div class="compact-actions"><button id="sssExpandAll" class="btn">Expand All Sectors</button><button id="sssCollapseAll" class="btn">Collapse All Sectors</button></div><div id="sssGrouped" class="sector-groups"></div></div>
 </section>
 
-<div class="tabs">
-<button id="tabSector" class="active">Sectorial Stock Selection</button>
-<button id="tabBreadth">Market Breadth</button>
-<button id="tabPre">NSE Pre-Market Selection</button>
-<button id="tabOI">Futures OI</button><button id="tabOISpurt">OI Spurt Selection</button><button id="tabPrevData">Stock Selection Based on Previous Data</button><button id="tabTopMovers">Top Gainers & Losers</button><button id="tabImpact">Previous Days Impact Analysis</button><button id="tabCharts">Live 5-Minute Market Charts</button><button id="tabDailyChart">Live Daily Chart</button><button id="tabSectorStockSummary">Sector & Stock Summary</button>
-<button id="refreshAll" class="btn">Refresh now</button><button id="installPwa" class="btn" style="display:none" onclick="installPwaApp()">Install App</button><button id="exportSectorExcel" class="btn">Export Sector Excel</button>
+<button id="mobileMenuButton" class="mobile-menu-button" type="button" aria-label="Open scanner menu">☰</button>
+<div id="mobileDrawerOverlay" class="mobile-drawer-overlay"></div>
+
+<nav id="scannerTabs" class="tabs">
+  <div class="mobile-drawer-head">
+    <div>
+      <strong>India F&amp;O Scanner</strong>
+      <small>Scanner Menu</small>
+    </div>
+    <button id="mobileDrawerClose" type="button" aria-label="Close scanner menu">×</button>
+  </div>
+
+  <button id="tabSector" class="active">Sectorial Stock Selection</button>
+  <button id="tabBreadth">Market Breadth</button>
+  <button id="tabPre">NSE Pre-Market Selection</button>
+  <button id="tabOI">Futures OI</button>
+  <button id="tabOISpurt">OI Spurt Selection</button>
+  <button id="tabPrevData">Stock Selection Based on Previous Data</button>
+  <button id="tabTopMovers">Top Gainers &amp; Losers</button>
+  <button id="tabImpact">Previous Days Impact Analysis</button>
+  <button id="tabCharts">Live 5-Minute Market Charts</button>
+  <button id="tabDailyChart">Live Daily Chart</button>
+  <button id="tabSectorStockSummary">Sector &amp; Stock Summary</button>
+</nav>
+
+<div class="top-actions">
+  <button id="refreshAll" class="btn">Refresh now</button>
+  <button id="installPwa" class="btn" style="display:none" onclick="installPwaApp()">Install App</button>
+  <button id="exportSectorExcel" class="btn">Export Sector Excel</button>
 </div>
 <div id="globalStatus" class="status">Loading…</div>
 
@@ -582,6 +761,44 @@ async function installPwaApp(){
 const $=id=>document.getElementById(id);
 function isVisible(id){const el=$(id);return !!el && !el.classList.contains('hidden')}
 let currentRows=[],summaryRows=[],oiData=[],preData=null,oiSpurtData=[],oiSpurtTimer=null,topMoversTimer=null,tmLastData=null,timer=null;
+
+function openMobileDrawer(){
+  if(window.innerWidth<=700){
+    document.body.classList.add('mobile-drawer-open');
+  }
+}
+
+function closeMobileDrawer(){
+  document.body.classList.remove('mobile-drawer-open');
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const menu=document.getElementById('mobileMenuButton');
+  const close=document.getElementById('mobileDrawerClose');
+  const overlay=document.getElementById('mobileDrawerOverlay');
+  const tabs=document.getElementById('scannerTabs');
+
+  if(menu) menu.addEventListener('click',openMobileDrawer);
+  if(close) close.addEventListener('click',closeMobileDrawer);
+  if(overlay) overlay.addEventListener('click',closeMobileDrawer);
+
+  if(tabs){
+    tabs.querySelectorAll('button[id^="tab"]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(window.innerWidth<=700) closeMobileDrawer();
+      });
+    });
+  }
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape') closeMobileDrawer();
+  });
+
+  window.addEventListener('resize',()=>{
+    if(window.innerWidth>700) closeMobileDrawer();
+  });
+});
+
 let lazyLoaded={pre:false,oi:false,ois:false,prev:false,tm:false,breadth:false,impact:false};
 let impactData=null,tm0922Data=null,tmTop5Data=null,marketChartData=null,marketChartTimer=null;
 let dailyChartData=null,dailyChartTimer=null,sssData=null;let dailyZoomStart=null,dailyZoomEnd=null,dailyDrag=null;

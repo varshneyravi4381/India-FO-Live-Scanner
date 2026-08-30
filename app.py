@@ -434,7 +434,7 @@ def _build_previous_levels(symbols):
         interval="1d",
         group_by="ticker",
         auto_adjust=False,
-        threads=True,
+        threads=False,
         progress=False,
         prepost=False,
     )
@@ -515,7 +515,7 @@ def _build_sector_snapshot():
         interval="1m",
         group_by="ticker",
         auto_adjust=False,
-        threads=True,
+        threads=False,
         progress=False,
         prepost=False,
     )
@@ -1381,7 +1381,7 @@ def _ois_price_refresh_worker(symbols):
             interval="1m",
             group_by="ticker",
             auto_adjust=False,
-            threads=True,
+            threads=False,
             progress=False,
             prepost=False,
         )
@@ -2887,7 +2887,7 @@ def _tm_build_daily_snapshot(force=False):
         interval="1d",
         group_by="ticker",
         auto_adjust=False,
-        threads=True,
+        threads=False,
         progress=False,
         prepost=False,
     )
@@ -2948,7 +2948,7 @@ def _tm_intraday_flags(symbols, base_rows):
         interval="1m",
         group_by="ticker",
         auto_adjust=False,
-        threads=True,
+        threads=False,
         progress=False,
         prepost=False,
     )
@@ -3017,12 +3017,10 @@ def _tm_intraday_flags(symbols, base_rows):
     return result
 
 def _tm_live(universe, sector, top_n, max_gainer_pct, max_loser_abs_pct, force=False):
-    # Outside the configured live window, normal auto refresh does not force Yahoo.
-    # Manual Fetch Now passes force=True.
-    if force or _tm_window_active():
-        _tm_build_daily_snapshot(force=force)
-    else:
-        _tm_build_daily_snapshot(force=False)
+    # Cache-first live endpoint:
+    # return the current RAM/disk snapshot immediately and refresh stale
+    # daily Yahoo data in the background.
+    _tm_trigger_background_refresh(force=force)
 
     with _top_movers_lock:
         base = dict(_top_movers_cache["rows"])
@@ -3068,10 +3066,13 @@ def _tm_live(universe, sector, top_n, max_gainer_pct, max_loser_abs_pct, force=F
         for r in gainers + losers
     }
 
-    detailed = _tm_intraday_flags(
+    detailed = _tm_cached_details(
         candidate_symbols,
-        candidate_map
+        force=force
     )
+
+    if not detailed:
+        detailed = list(candidate_map.values())
     detailed_map = {
         r["symbol"]: r
         for r in detailed
@@ -4876,11 +4877,11 @@ def _basket_intraday_and_daily(symbols):
     ys=[_sym(s) for s in clean]
     intra = yf.download(
         tickers=ys, period='5d', interval='5m', group_by='ticker',
-        auto_adjust=False, threads=True, progress=False, prepost=False,
+        auto_adjust=False, threads=False, progress=False, prepost=False,
     )
     daily = yf.download(
         tickers=ys, period='30d', interval='1d', group_by='ticker',
-        auto_adjust=False, threads=True, progress=False, prepost=False,
+        auto_adjust=False, threads=False, progress=False, prepost=False,
     )
     # Synthetic basket price = equal-weight arithmetic average of constituent prices.
     intra_series=[]
@@ -4914,11 +4915,11 @@ def _build_one_market_series(name, ticker=None, symbols=None):
         try:
             raw_i=yf.download(
                 tickers=[ticker], period='5d', interval='5m', group_by='ticker',
-                auto_adjust=False, threads=True, progress=False, prepost=False,
+                auto_adjust=False, threads=False, progress=False, prepost=False,
             )
             raw_d=yf.download(
                 tickers=[ticker], period='40d', interval='1d', group_by='ticker',
-                auto_adjust=False, threads=True, progress=False, prepost=False,
+                auto_adjust=False, threads=False, progress=False, prepost=False,
             )
             intraday=_single(raw_i,ticker)
             daily=_single(raw_d,ticker)
@@ -5150,7 +5151,7 @@ def _basket_daily_frame(symbols, period='6mo'):
         return pd.DataFrame()
     data = yf.download(
         tickers=[_sym(s) for s in clean], period=period, interval='1d',
-        group_by='ticker', auto_adjust=False, threads=True,
+        group_by='ticker', auto_adjust=False, threads=False,
         progress=False, prepost=False,
     )
     frames = []
@@ -5177,7 +5178,7 @@ def _basket_today_ohlc(symbols):
         return None
     data = yf.download(
         tickers=[_sym(s) for s in clean], period='1d', interval='5m',
-        group_by='ticker', auto_adjust=False, threads=True,
+        group_by='ticker', auto_adjust=False, threads=False,
         progress=False, prepost=False,
     )
     rows = []
@@ -5210,12 +5211,12 @@ def _actual_index_frames(ticker):
     try:
         raw_d = yf.download(
             tickers=[ticker], period='6mo', interval='1d', group_by='ticker',
-            auto_adjust=False, threads=True, progress=False, prepost=False,
+            auto_adjust=False, threads=False, progress=False, prepost=False,
         )
         daily = _single(raw_d, ticker)
         raw_i = yf.download(
             tickers=[ticker], period='1d', interval='5m', group_by='ticker',
-            auto_adjust=False, threads=True, progress=False, prepost=False,
+            auto_adjust=False, threads=False, progress=False, prepost=False,
         )
         intra = _to_ist_frame(_single(raw_i, ticker))
         today = pd.Timestamp.now(tz='Asia/Kolkata').date()
@@ -5463,7 +5464,7 @@ def _sss_historical_move_overrides(dates):
         end = (pd.Timestamp(dates[-1]) + pd.Timedelta(days=3)).strftime('%Y-%m-%d')
         data = yf.download(
             tickers=[_sym(x) for x in clean], start=start, end=end, interval='1d',
-            group_by='ticker', auto_adjust=False, threads=True, progress=False,
+            group_by='ticker', auto_adjust=False, threads=False, progress=False,
             prepost=False,
         )
     except Exception:
@@ -6024,11 +6025,11 @@ def _live_price_enrichment(symbols, trade_date=None):
     # 5-minute data is enough for both first-5m and first-15m analysis.
     data5 = yf.download(
         tickers=ysymbols, period="30d", interval="5m", group_by="ticker",
-        auto_adjust=False, threads=True, progress=False, prepost=False
+        auto_adjust=False, threads=False, progress=False, prepost=False
     )
     daily = yf.download(
         tickers=ysymbols, period="35d", interval="1d", group_by="ticker",
-        auto_adjust=False, threads=True, progress=False, prepost=False
+        auto_adjust=False, threads=False, progress=False, prepost=False
     )
 
     result = {}
